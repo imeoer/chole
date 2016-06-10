@@ -1,4 +1,5 @@
 const net = require('net')
+const dns = require('dns')
 
 class SocketQueue {
   constructor() {
@@ -38,9 +39,19 @@ const proxyServer = net.createServer((proxyClientSocket) => {
   console.log('Listening on %s', address.port)
 })
 
+const parseDomain = (chunk) => {
+  const header = String(chunk.slice(0, chunk.indexOf('\r\n\r\n') - 1)).toLowerCase()
+  const matchs = (/\r\nhost:(.*)\r\n/).exec(header)
+  if (matchs && matchs[1]) {
+    return matchs[1].trim()
+  }
+}
+
 const clientServer = net.createServer((clientSocket) => {
   socketQueue.pushClient(clientSocket)
-  clientSocket.on('error', (err) => {
+  clientSocket.on('data', (chunk) => {
+    console.log(parseDomain(chunk))
+  }).on('error', (err) => {
     console.error(3, err.message)
   }).on('close', () => {
   })

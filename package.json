@@ -1,7 +1,7 @@
 {
-  "name": "archer",
+  "name": "chole",
   "version": "1.0.0",
-  "description": "",
+  "description": "A tool of exposed internal port to outside",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
