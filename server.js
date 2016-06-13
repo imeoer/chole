@@ -18,6 +18,8 @@ class SocketDuplex extends Duplex {
     this.writeable = new PassThrough()
     this.readable.on('data', (chunk) => {
       this.push(chunk)
+    }).on('end', () => {
+      this.push(null)
     })
   }
   _read(size) {}
@@ -34,8 +36,8 @@ class SocketQueue {
   _tryPipe() {
     if (this.clientSockets.length && this.proxySockets.length) {
       const clientSocket = this.clientSockets.shift()
-      const proxyClientSocket = this.proxySockets.shift()
-      clientSocket.pipe(proxyClientSocket).pipe(clientSocket)
+      const proxySocket = this.proxySockets.shift()
+      clientSocket.pipe(proxySocket).pipe(clientSocket)
       console.log('PROXIED')
     }
   }
@@ -51,9 +53,19 @@ class SocketQueue {
 
 let socketQueue = new SocketQueue()
 
-const proxyServer = net.createServer((proxyClientSocket) => {
-  socketQueue.pushProxy(proxyClientSocket)
-  proxyClientSocket.on('error', (err) => {
+const proxyServer = net.createServer((proxySocket) => {
+  proxySocket.on('data', (chunk) => {
+    if (!proxySocket.used) {
+      const domain = String(chunk)
+      if (domain == 'a.chole.io') {
+        proxySocket.write('ok')
+        socketQueue.pushProxy(proxySocket)
+      } else {
+        proxySocket.write('no')
+      }
+      proxySocket.used = true
+    }
+  }).on('error', (err) => {
     console.error(1, err.message)
   }).on('close', () => {
   })
@@ -70,7 +82,7 @@ const clientServer = net.createServer((clientSocket) => {
   clientSocket.on('data', (chunk) => {
     const domain = parseDomain(chunk)
     console.log(domain)
-    if (domain == 'localhost') {
+    if (domain == 'a.chole.io') {
       if (!clientSocket.used) {
         socketQueue.pushClient(socketDuplex)
         clientSocket.used = true

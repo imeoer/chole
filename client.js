@@ -35,8 +35,24 @@ const connectProxy = () => {
         }, 2000)
         return
       }
-      socketPipe.setClient(clientSocket)
-      socketPipe.setProxy(proxySocket)
+      proxySocket.write('a.chole.io')
+      proxySocket.on('data', (chunk) => {
+        if (!proxySocket.used) {
+          const authed = (String(chunk) == 'ok')
+          if (authed) {
+            socketPipe.setClient(clientSocket)
+            socketPipe.setProxy(proxySocket)
+          } else {
+            console.log('Auth failed')
+          }
+          proxySocket.used = true
+        } else {
+          if (!proxySocket.transfered) {
+            connectProxy()
+            proxySocket.transfered = true
+          }
+        }
+      })
     }
     connectServer(handle)
   }).on('error', (err) => {
@@ -51,9 +67,6 @@ const connectProxy = () => {
         connectProxy()
       }, 2000)
     }
-  }).on('data', () => {
-    if (!proxySocket.used) connectProxy()
-    proxySocket.used = true
   })
 }
 
