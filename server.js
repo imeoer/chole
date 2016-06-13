@@ -1,5 +1,30 @@
 const net = require('net')
-const dns = require('dns')
+const stream = require('stream')
+const Duplex = stream.Duplex
+const PassThrough = stream.PassThrough
+
+const parseDomain = (chunk) => {
+  const header = String(chunk.slice(0, chunk.indexOf('\r\n\r\n') - 1)).toLowerCase()
+  const matchs = (/\r\nhost:(.*)\r\n/).exec(header)
+  if (matchs && matchs[1]) {
+    return matchs[1].trim()
+  }
+}
+
+class SocketDuplex extends Duplex {
+  constructor(opts) {
+    super(opts)
+    this.readable = new PassThrough()
+    this.writeable = new PassThrough()
+    this.readable.on('data', (chunk) => {
+      this.push(chunk)
+    })
+  }
+  _read(size) {}
+  _write(chunk, encoding, next) {
+    this.writeable.write(chunk, encoding, next)
+  }
+}
 
 class SocketQueue {
   constructor() {
@@ -39,18 +64,19 @@ const proxyServer = net.createServer((proxyClientSocket) => {
   console.log('Listening on %s', address.port)
 })
 
-const parseDomain = (chunk) => {
-  const header = String(chunk.slice(0, chunk.indexOf('\r\n\r\n') - 1)).toLowerCase()
-  const matchs = (/\r\nhost:(.*)\r\n/).exec(header)
-  if (matchs && matchs[1]) {
-    return matchs[1].trim()
-  }
-}
-
 const clientServer = net.createServer((clientSocket) => {
-  socketQueue.pushClient(clientSocket)
+  const socketDuplex = new SocketDuplex()
+  socketDuplex.writeable.pipe(clientSocket)
   clientSocket.on('data', (chunk) => {
-    console.log(parseDomain(chunk))
+    const domain = parseDomain(chunk)
+    console.log(domain)
+    if (domain == 'localhost') {
+      if (!clientSocket.used) {
+        socketQueue.pushClient(socketDuplex)
+        clientSocket.used = true
+      }
+      socketDuplex.readable.write(chunk)
+    }
   }).on('error', (err) => {
     console.error(3, err.message)
   }).on('close', () => {
