@@ -39,6 +39,7 @@ const connectProxy = () => {
       proxySocket.on('data', (chunk) => {
         if (!proxySocket.used) {
           const authed = (chunk.indexOf('ok\r\n') == 0)
+          console.log(authed)
           if (authed) {
             socketPipe.setClient(clientSocket)
             socketPipe.setProxy(proxySocket)

@@ -57,25 +57,28 @@ class SocketPipe {
 
 const socketPipe = new SocketPipe()
 
+const printStatus = () => {
+  for (let item in socketPipe.clientMap) {
+    console.log(`CLIENT: ${item}: ${socketPipe.clientMap[item].length}`)
+  }
+  for (let item in socketPipe.proxyMap) {
+    console.log(`PROXY: ${item}: ${socketPipe.proxyMap[item].length}`)
+  }
+}
+
 const proxyServer = net.createServer((proxySocket) => {
   proxySocket.on('data', (chunk) => {
     if (!proxySocket.used) {
       const domain = String(chunk)
       proxySocket.write('ok\r\n')
+      // printStatus()
       socketPipe.pushProxy(domain, proxySocket)
       proxySocket.used = true
     }
   }).on('error', (err) => {
     console.error(1, err.message)
   }).on('close', () => {
-    console.log('CLIENT')
-    for (let item in socketPipe.clientMap) {
-      console.log(`${item}: ${socketPipe.clientMap[item].length}`)
-    }
-    console.log('PROXY')
-    for (let item in socketPipe.proxyMap) {
-      console.log(`${item}: ${socketPipe.proxyMap[item].length}`)
-    }
+
   })
 }).on('error', (err) => {
   console.error(2, err.message)
@@ -91,6 +94,7 @@ const clientServer = net.createServer((clientSocket) => {
     const domain = parseDomain(chunk)
     if (domain) {
       if (!clientSocket.used) {
+        printStatus()
         socketPipe.pushClient(domain, socketDuplex)
         clientSocket.used = true
       }
