@@ -28,46 +28,54 @@ class SocketDuplex extends Duplex {
   }
 }
 
-class SocketQueue {
+class SocketPipe {
   constructor() {
-    this.clientSockets = []
-    this.proxySockets = []
+    this.clientMap = {}
+    this.proxyMap = {}
   }
-  _tryPipe() {
-    if (this.clientSockets.length && this.proxySockets.length) {
-      const clientSocket = this.clientSockets.shift()
-      const proxySocket = this.proxySockets.shift()
+  _tryPipe(domain) {
+    const clients = this.clientMap[domain]
+    const proxys = this.proxyMap[domain]
+    if (clients && clients.length && proxys && proxys.length) {
+      const clientSocket = clients.shift()
+      const proxySocket = proxys.shift()
       clientSocket.pipe(proxySocket).pipe(clientSocket)
       console.log('PROXIED')
     }
   }
-  pushClient(socket) {
-    this.clientSockets.push(socket)
-    this._tryPipe()
+  pushClient(domain, socket) {
+    const clients = this.clientMap[domain]
+    this.clientMap[domain] = clients ? clients.concat(socket) : [socket]
+    this._tryPipe(domain)
   }
-  pushProxy(socket) {
-    this.proxySockets.push(socket)
-    this._tryPipe()
+  pushProxy(domain, socket) {
+    const proxys = this.proxyMap[domain]
+    this.proxyMap[domain] = proxys ? proxys.concat(socket) : [socket]
+    this._tryPipe(domain)
   }
 }
 
-let socketQueue = new SocketQueue()
+const socketPipe = new SocketPipe()
 
 const proxyServer = net.createServer((proxySocket) => {
   proxySocket.on('data', (chunk) => {
     if (!proxySocket.used) {
       const domain = String(chunk)
-      if (domain == 'a.chole.io') {
-        proxySocket.write('ok')
-        socketQueue.pushProxy(proxySocket)
-      } else {
-        proxySocket.write('no')
-      }
+      proxySocket.write('ok\r\n')
+      socketPipe.pushProxy(domain, proxySocket)
       proxySocket.used = true
     }
   }).on('error', (err) => {
     console.error(1, err.message)
   }).on('close', () => {
+    console.log('CLIENT')
+    for (let item in socketPipe.clientMap) {
+      console.log(`${item}: ${socketPipe.clientMap[item].length}`)
+    }
+    console.log('PROXY')
+    for (let item in socketPipe.proxyMap) {
+      console.log(`${item}: ${socketPipe.proxyMap[item].length}`)
+    }
   })
 }).on('error', (err) => {
   console.error(2, err.message)
@@ -81,10 +89,9 @@ const clientServer = net.createServer((clientSocket) => {
   socketDuplex.writeable.pipe(clientSocket)
   clientSocket.on('data', (chunk) => {
     const domain = parseDomain(chunk)
-    console.log(domain)
-    if (domain == 'a.chole.io') {
+    if (domain) {
       if (!clientSocket.used) {
-        socketQueue.pushClient(socketDuplex)
+        socketPipe.pushClient(domain, socketDuplex)
         clientSocket.used = true
       }
       socketDuplex.readable.write(chunk)

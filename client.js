@@ -23,7 +23,7 @@ class SocketPipe {
   }
 }
 
-let socketPipe = new SocketPipe()
+const socketPipe = new SocketPipe()
 
 const connectProxy = () => {
   let hasError = false
@@ -38,7 +38,7 @@ const connectProxy = () => {
       proxySocket.write('a.chole.io')
       proxySocket.on('data', (chunk) => {
         if (!proxySocket.used) {
-          const authed = (String(chunk) == 'ok')
+          const authed = (chunk.indexOf('ok\r\n') == 0)
           if (authed) {
             socketPipe.setClient(clientSocket)
             socketPipe.setProxy(proxySocket)
@@ -68,6 +68,7 @@ const connectProxy = () => {
       }, 2000)
     }
   })
+  return proxySocket
 }
 
 const connectServer = (callback) => {
