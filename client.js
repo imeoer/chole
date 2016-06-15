@@ -1,86 +1,39 @@
 const net = require('net')
+const Manage = require('./manage')
+const Duplex = require('./duplex')
 
-class SocketPipe {
-  constructor() {
-    this.clientSocket = null
-    this.proxySocket = null
-  }
-  _tryPipe() {
-    if (this.clientSocket && this.proxySocket) {
-      this.proxySocket.pipe(this.clientSocket).pipe(this.proxySocket)
-      this.clientSocket = null
-      this.proxySocket = null
-      console.log('PROXIED')
+const manage = new Manage()
+
+const connectFrom = () => {
+  const duplex = new Duplex()
+  net.connect(81, '127.0.0.1', function() {
+    const from = this
+    duplex.writable.pipe(from)
+    manage.setIdle(from)
+    connectTo(to => manage.pipeTo(to))
+  }).on('data', function(chunk) {
+    const from = this
+    duplex.readable.write(chunk)
+    if (manage.hasIdle(from)) {
+      manage.pipeFrom(duplex)
+      if (manage.lessIdle()) connectFrom()
+      manage.delIdle(from)
     }
-  }
-  setClient(socket) {
-    this.clientSocket = socket
-    this._tryPipe()
-  }
-  setProxy(socket) {
-    this.proxySocket = socket
-    this._tryPipe()
-  }
-}
-
-const socketPipe = new SocketPipe()
-
-const connectProxy = () => {
-  let hasError = false
-  let proxySocket = net.connect(81, () => {
-    const handle = (err, clientSocket) => {
-      if (err) {
-        setTimeout(() => {
-          connectServer(handle)
-        }, 2000)
-        return
-      }
-      proxySocket.write('a.chole.io')
-      proxySocket.on('data', (chunk) => {
-        if (!proxySocket.used) {
-          const authed = (chunk.indexOf('ok\r\n') == 0)
-          console.log(authed)
-          if (authed) {
-            socketPipe.setClient(clientSocket)
-            socketPipe.setProxy(proxySocket)
-          } else {
-            console.log('Auth failed')
-          }
-          proxySocket.used = true
-        } else {
-          if (!proxySocket.transfered) {
-            connectProxy()
-            proxySocket.transfered = true
-          }
-        }
-      })
-    }
-    connectServer(handle)
+  }).on('end', (chunk) => {
+    duplex.readable.end(chunk)
   }).on('error', (err) => {
-    hasError = true
-    console.error(1, err.message)
-    setTimeout(() => {
-      connectProxy()
-    }, 2000)
+    console.log('[from]', err.message)
   }).on('close', () => {
-    if (!hasError) {
-      setTimeout(() => {
-        connectProxy()
-      }, 2000)
-    }
+    if (manage.lessIdle()) connectFrom()
   })
-  return proxySocket
 }
 
-const connectServer = (callback) => {
-  const clientSocket = net.connect(8080, () => {
-    callback(null, clientSocket)
+const connectTo = (cb) => {
+  const to = net.connect(8080, '127.0.0.1', () => {
+    cb(to)
   }).on('error', (err) => {
-    console.error(2, err.message)
-    callback(err)
-  }).on('close', () => {
+    console.log('[to]', err.message)
   })
-  return clientSocket
 }
 
-connectProxy()
+connectFrom()

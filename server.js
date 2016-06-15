@@ -1,7 +1,6 @@
 const net = require('net')
-const stream = require('stream')
-const Duplex = stream.Duplex
-const PassThrough = stream.PassThrough
+const Manage = require('./manage')
+const Duplex = require('./duplex')
 
 const parseDomain = (chunk) => {
   const header = String(chunk.slice(0, chunk.indexOf('\r\n\r\n') - 1)).toLowerCase()
@@ -11,102 +10,29 @@ const parseDomain = (chunk) => {
   }
 }
 
-class SocketDuplex extends Duplex {
-  constructor(opts) {
-    super(opts)
-    this.readable = new PassThrough()
-    this.writeable = new PassThrough()
-    this.readable.on('data', (chunk) => {
-      this.push(chunk)
-    }).on('end', () => {
-      this.push(null)
-    })
-  }
-  _read(size) {}
-  _write(chunk, encoding, next) {
-    this.writeable.write(chunk, encoding, next)
-  }
-}
+const manage = new Manage()
 
-class SocketPipe {
-  constructor() {
-    this.clientMap = {}
-    this.proxyMap = {}
-  }
-  _tryPipe(domain) {
-    const clients = this.clientMap[domain]
-    const proxys = this.proxyMap[domain]
-    if (clients && clients.length && proxys && proxys.length) {
-      const clientSocket = clients.shift()
-      const proxySocket = proxys.shift()
-      clientSocket.pipe(proxySocket).pipe(clientSocket)
-      console.log('PROXIED')
-    }
-  }
-  pushClient(domain, socket) {
-    const clients = this.clientMap[domain]
-    this.clientMap[domain] = clients ? clients.concat(socket) : [socket]
-    this._tryPipe(domain)
-  }
-  pushProxy(domain, socket) {
-    const proxys = this.proxyMap[domain]
-    this.proxyMap[domain] = proxys ? proxys.concat(socket) : [socket]
-    this._tryPipe(domain)
-  }
-}
-
-const socketPipe = new SocketPipe()
-
-const printStatus = () => {
-  for (let item in socketPipe.clientMap) {
-    console.log(`CLIENT: ${item}: ${socketPipe.clientMap[item].length}`)
-  }
-  for (let item in socketPipe.proxyMap) {
-    console.log(`PROXY: ${item}: ${socketPipe.proxyMap[item].length}`)
-  }
-}
-
-const proxyServer = net.createServer((proxySocket) => {
-  proxySocket.on('data', (chunk) => {
-    if (!proxySocket.used) {
-      const domain = String(chunk)
-      proxySocket.write('ok\r\n')
-      // printStatus()
-      socketPipe.pushProxy(domain, proxySocket)
-      proxySocket.used = true
-    }
-  }).on('error', (err) => {
-    console.error(1, err.message)
-  }).on('close', () => {
-
-  })
-}).on('error', (err) => {
-  console.error(2, err.message)
-}).listen(81, () => {
-  address = proxyServer.address()
-  console.log('Listening on %s', address.port)
-})
-
-const clientServer = net.createServer((clientSocket) => {
-  const socketDuplex = new SocketDuplex()
-  socketDuplex.writeable.pipe(clientSocket)
-  clientSocket.on('data', (chunk) => {
+net.createServer((from) => {
+  manage.setIdle(from)
+  const duplex = new Duplex()
+  duplex.writable.pipe(from)
+  from.on('data', (chunk) => {
     const domain = parseDomain(chunk)
-    if (domain) {
-      if (!clientSocket.used) {
-        printStatus()
-        socketPipe.pushClient(domain, socketDuplex)
-        clientSocket.used = true
-      }
-      socketDuplex.readable.write(chunk)
+    duplex.readable.write(chunk)
+    if (manage.hasIdle(from)) {
+      manage.pipeFrom(duplex)
+      manage.delIdle(from)
     }
+  }).on('end', (chunk) => {
+    duplex.readable.end(chunk)
   }).on('error', (err) => {
-    console.error(3, err.message)
-  }).on('close', () => {
+    console.log('[from]', err.message)
   })
-}).on('error', (err) => {
-  console.error(4, err.message)
-}).listen(80, () => {
-  address = clientServer.address()
-  console.log('Listening on %s', address.port)
-})
+}).listen(80)
+
+net.createServer((to) => {
+  to.on('error', (err) => {
+    console.log('[to]', err.message)
+  })
+  manage.pipeTo(to)
+}).listen(81)
