@@ -10,6 +10,8 @@ const parseDomain = (chunk) => {
   }
 }
 
+const names = new Map()
+
 const manage = new Manage()
 
 net.createServer((from) => {
@@ -31,8 +33,24 @@ net.createServer((from) => {
 }).listen(80)
 
 net.createServer((to) => {
-  to.on('error', (err) => {
+  to.on('data', function(chunk) {
+    const to = this
+    if (!to.used) {
+      const data = String(chunk).split(' ')
+      const uuid = data[0]
+      const name = data[1]
+      if (names.has(name)) {
+        to.destroy()
+        return
+      }
+      names.set(name, to)
+      to.name = name
+      to.used = true
+      manage.pipeTo(to)
+    }
+  }).on('error', (err) => {
     console.log('[to]', err.message)
+  }).on('close', function() {
+    names.delete(this.name)
   })
-  manage.pipeTo(to)
 }).listen(81)

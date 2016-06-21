@@ -4,12 +4,15 @@ const Duplex = require('./duplex')
 
 const manage = new Manage()
 
+const uuid = '12345'
+
 const connectFrom = () => {
   const duplex = new Duplex()
   net.connect(81, '127.0.0.1', function() {
     const from = this
     duplex.writable.pipe(from)
     manage.setIdle(from)
+    from.write(`${uuid} hello\n`)
     connectTo(to => manage.pipeTo(to))
   }).on('data', function(chunk) {
     const from = this

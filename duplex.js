@@ -7,6 +7,8 @@ module.exports = class Duplex extends stream.Duplex {
     this.writable = new stream.PassThrough()
     this.readable.on('readable', () => {
       this._read()
+    }).on('end', () => {
+      this.push(null)
     })
   }
   _read(size) {
