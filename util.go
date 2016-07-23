@@ -1,9 +1,9 @@
 package main
 
 import (
-  "bytes"
-  "regexp"
-  "strings"
+	"bytes"
+	"regexp"
+	"strings"
 )
 
 func parseDomain(data []byte) (domain string) {

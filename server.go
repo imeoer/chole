@@ -15,7 +15,7 @@ func (server Server) start(isFrom bool, port string) chan net.Conn {
 	}
 	connPool := make(chan net.Conn)
 	go func() {
-    defer client.Close()
+		defer client.Close()
 		for {
 			conn, err := client.Accept()
 			if err != nil {
@@ -32,11 +32,16 @@ func (server Server) Init() {
 	toChan := server.start(false, PROXY_SERVER_PORT)
 	go func() {
 		for {
-			proxy := Proxy{}
-			proxy.Start(<- fromChan, <- toChan, func(data []byte) bool {
-				parseDomain(data)
-				return true
-			})
+			proxy := Proxy{
+				from: <-fromChan,
+				to:   <-toChan,
+				valid: func(data []byte) bool {
+					domain := parseDomain(data)
+					log.Println(domain)
+					return true
+				},
+			}
+			proxy.Start()
 		}
 	}()
 }

@@ -29,11 +29,16 @@ func connectPool(port string) chan net.Conn {
 func (client Client) Init() {
 	proxyChan := connectPool(PROXY_SERVER_PORT)
 	appChan := connectPool(APP_SERVER_PORT)
-  for {
-		proxy := Proxy{}
-		proxy.Start(<- proxyChan, <- appChan, func(data []byte) bool {
-			parseDomain(data)
-			return true
-		})
-  }
+	for {
+		proxy := Proxy{
+			from: <-proxyChan,
+			to:   <-appChan,
+			valid: func(data []byte) bool {
+				domain := parseDomain(data)
+				log.Println(domain)
+				return true
+			},
+		}
+		proxy.Start()
+	}
 }
