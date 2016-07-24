@@ -10,8 +10,8 @@ const APP_SERVER_PORT = "8000"
 
 func main() {
 	server := Server{}
-	server.Init()
+	server.Start()
 
 	client := Client{}
-	client.Init()
+	client.Start()
 }

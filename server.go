@@ -8,7 +8,7 @@ import (
 type Server struct {
 }
 
-func (server Server) start(isFrom bool, port string) chan net.Conn {
+func (server Server) listen(isFrom bool, port string) chan net.Conn {
 	client, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal(err)
@@ -27,17 +27,16 @@ func (server Server) start(isFrom bool, port string) chan net.Conn {
 	return connPool
 }
 
-func (server Server) Init() {
-	fromChan := server.start(true, CLIENT_SERVER_PORT)
-	toChan := server.start(false, PROXY_SERVER_PORT)
+func (server Server) Start() {
+	fromChan := server.listen(true, CLIENT_SERVER_PORT)
+	toChan := server.listen(false, PROXY_SERVER_PORT)
 	go func() {
 		for {
 			proxy := Proxy{
 				from: <-fromChan,
 				to:   <-toChan,
 				valid: func(data []byte) bool {
-					domain := parseDomain(data)
-					log.Println(domain)
+					// domain := ParseDomain(data)
 					return true
 				},
 			}

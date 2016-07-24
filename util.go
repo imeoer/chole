@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func parseDomain(data []byte) (domain string) {
+func ParseDomain(data []byte) (domain string) {
 	pos := bytes.Index(data, []byte("\r\n\r\n"))
 	header := strings.ToLower(string(data[:pos]))
 	regex := regexp.MustCompile("\r\nhost:(.*)\r\n")
