@@ -7,13 +7,13 @@ import (
 )
 
 type Proxy struct {
-	inited  bool
-	checked bool
+	inited   bool
+	checked  bool
 	usedChan chan bool
-	from    net.Conn
-	to      net.Conn
-	init    func(io.ReadWriter)
-	valid   func([]byte) bool
+	from     net.Conn
+	to       net.Conn
+	init     func(io.ReadWriter)
+	valid    func([]byte) bool
 }
 
 var connCount int
@@ -59,7 +59,7 @@ func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 	}
 }
 
-func (proxy Proxy) Start() (chan bool) {
+func (proxy Proxy) Start() chan bool {
 	proxy.usedChan = make(chan bool)
 	go proxy.pipe(proxy.from, proxy.to, true)
 	go proxy.pipe(proxy.to, proxy.from, false)

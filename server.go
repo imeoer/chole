@@ -11,15 +11,20 @@ type Server struct {
 func (server Server) listen(isFrom bool, port string) chan net.Conn {
 	client, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		log.Fatal("SERVER: ", err)
+		panic(err)
 	}
 	connPool := make(chan net.Conn)
 	go func() {
-		defer client.Close()
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("SERVER", err)
+			}
+			defer client.Close()
+		}()
 		for {
 			conn, err := client.Accept()
 			if err != nil {
-				log.Fatal("SERVER: ", err)
+				panic(err)
 			}
 			connPool <- conn
 		}
@@ -33,14 +38,14 @@ func (server Server) Start() {
 	go func() {
 		for {
 			proxy := Proxy{
-				from: <- fromChan,
-				to:   <- toChan,
+				from: <-fromChan,
+				to:   <-toChan,
 				valid: func(data []byte) bool {
 					// domain := ParseDomain(data)
 					return true
 				},
 			}
-			<- proxy.Start()
+			<-proxy.Start()
 		}
 	}()
 }
