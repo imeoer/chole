@@ -11,7 +11,7 @@ type Client struct {
 func connect(port string) net.Conn {
 	conn, err := net.Dial("tcp", ":"+port)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("CLIENT: ", err)
 	}
 	return conn
 }
@@ -27,11 +27,11 @@ func connectPool(port string, size int) chan net.Conn {
 }
 
 func (client Client) Start() {
-	fromChan := connectPool(PROXY_SERVER_PORT, 50)
-	toChan := connectPool(APP_SERVER_PORT, 50)
+	fromChan := connectPool(PROXY_SERVER_PORT, 5)
+	toChan := connectPool(APP_SERVER_PORT, 5)
 	for {
-		fromConn := <-fromChan
-		toConn := <-toChan
+		fromConn := <- fromChan
+		toConn := <- toChan
 		proxy := Proxy{
 			from: fromConn,
 			to: toConn,
@@ -40,7 +40,6 @@ func (client Client) Start() {
 				return true
 			},
 		}
-		closedChan := proxy.Start()
-		<- closedChan
+		<- proxy.Start()
 	}
 }

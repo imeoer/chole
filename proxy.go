@@ -2,22 +2,33 @@ package main
 
 import (
 	"io"
-	// "log"
+	"log"
 	"net"
 )
 
 type Proxy struct {
 	inited  bool
-	closedChan chan bool
 	checked bool
+	usedChan chan bool
 	from    net.Conn
 	to      net.Conn
 	init    func(io.ReadWriter)
 	valid   func([]byte) bool
 }
 
+var connCount int
+
 func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
+	connCount++
+	log.Println(connCount)
 	buff := make([]byte, 0xffff)
+	defer func() {
+		proxy.from.Close()
+		proxy.to.Close()
+		connCount--
+		log.Println(connCount)
+		proxy.usedChan <- true
+	}()
 	for {
 		if direct && !proxy.inited {
 			proxy.inited = true
@@ -36,6 +47,7 @@ func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 		data := buff[:size]
 		if direct && !proxy.checked {
 			proxy.checked = true
+			proxy.usedChan <- true
 			if proxy.valid != nil && !proxy.valid(data) {
 				break
 			}
@@ -48,15 +60,8 @@ func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 }
 
 func (proxy Proxy) Start() (chan bool) {
-	proxy.closedChan = make(chan bool)
-	go func() {
-		proxy.pipe(proxy.from, proxy.to, true)
-		proxy.from.Close()
-		proxy.to.Close()
-		proxy.closedChan <- true
-	}()
-	go func() {
-		proxy.pipe(proxy.to, proxy.from, false)
-	}()
-	return proxy.closedChan
+	proxy.usedChan = make(chan bool)
+	go proxy.pipe(proxy.from, proxy.to, true)
+	go proxy.pipe(proxy.to, proxy.from, false)
+	return proxy.usedChan
 }
