@@ -2,11 +2,15 @@ package main
 
 import (
 	"io"
-	"log"
+	// "log"
 	"net"
+	"time"
 )
 
+const KEEP_ALIVE_TIMEOUT = 30 * time.Second
+
 type Proxy struct {
+	isServer bool
 	inited   bool
 	checked  bool
 	usedChan chan bool
@@ -14,19 +18,23 @@ type Proxy struct {
 	to       net.Conn
 	init     func(io.ReadWriter)
 	valid    func([]byte) bool
+	closed   func(bool)
 }
 
-var connCount int
-
 func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
-	connCount++
-	log.Println(connCount)
+	if direct && !proxy.isServer {
+		counter.Up()
+	}
 	buff := make([]byte, 0xffff)
 	defer func() {
+		if direct && !proxy.isServer {
+			counter.Down()
+		}
 		proxy.from.Close()
 		proxy.to.Close()
-		connCount--
-		log.Println(connCount)
+		if proxy.closed != nil {
+			proxy.closed(direct)
+		}
 		proxy.usedChan <- true
 	}()
 	for {
@@ -59,9 +67,19 @@ func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 	}
 }
 
-func (proxy Proxy) Start() chan bool {
+func (proxy Proxy) Start(isServer bool) chan bool {
+	proxy.isServer = isServer
 	proxy.usedChan = make(chan bool)
+
+	fromConn := proxy.from.(*net.TCPConn)
+	toConn := proxy.to.(*net.TCPConn)
+	fromConn.SetKeepAlive(true)
+	toConn.SetKeepAlive(true)
+	fromConn.SetKeepAlivePeriod(KEEP_ALIVE_TIMEOUT)
+	toConn.SetKeepAlivePeriod(KEEP_ALIVE_TIMEOUT)
+
 	go proxy.pipe(proxy.from, proxy.to, true)
 	go proxy.pipe(proxy.to, proxy.from, false)
+
 	return proxy.usedChan
 }

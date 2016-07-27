@@ -8,20 +8,20 @@ import (
 type Client struct {
 }
 
-func connect(port string) net.Conn {
-	conn, err := net.Dial("tcp", ":"+port)
+func connect(addr string) net.Conn {
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		log.Println("CLIENT: ", err)
+		log.Fatal("CLIENT: ", err)
 		return nil
 	}
 	return conn
 }
 
-func connectPool(port string, size int) chan net.Conn {
+func connectPool(addr string, size int) chan net.Conn {
 	connPool := make(chan net.Conn, size)
 	go func() {
 		for {
-			conn := connect(port)
+			conn := connect(addr)
 			if conn != nil {
 				connPool <- conn
 			}
@@ -31,8 +31,8 @@ func connectPool(port string, size int) chan net.Conn {
 }
 
 func (client Client) Start() {
-	fromChan := connectPool(PROXY_SERVER_PORT, 5)
-	toChan := connectPool(APP_SERVER_PORT, 5)
+	fromChan := connectPool(":" + PROXY_SERVER_PORT, 1)
+	toChan := connectPool("127.0.0.1:" + APP_SERVER_PORT, 1)
 	for {
 		fromConn := <-fromChan
 		toConn := <-toChan
@@ -44,6 +44,6 @@ func (client Client) Start() {
 				return true
 			},
 		}
-		<-proxy.Start()
+		<-proxy.Start(false)
 	}
 }
