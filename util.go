@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
+	"log"
 	"regexp"
 	"strings"
-	"log"
 	"sync/atomic"
 )
 
@@ -21,8 +21,6 @@ func (counter *Counter) Down() {
 	atomic.AddInt64(&((*counter).count), -1)
 	log.Printf("Connections: - %d\n", counter.count)
 }
-
-var counter *Counter
 
 func ParseDomain(data []byte) (domain string) {
 	pos := bytes.Index(data, []byte("\r\n\r\n"))

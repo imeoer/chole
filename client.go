@@ -31,11 +31,10 @@ func connectPool(addr string, size int) chan net.Conn {
 }
 
 func (client Client) Start() {
-	fromChan := connectPool(":" + PROXY_SERVER_PORT, 1)
-	toChan := connectPool("127.0.0.1:" + APP_SERVER_PORT, 1)
 	for {
-		fromConn := <-fromChan
-		toConn := <-toChan
+		<-newConn
+		fromConn := connect(":" + PROXY_SERVER_PORT)
+		toConn := connect(":" + APP_SERVER_PORT)
 		proxy := Proxy{
 			from: fromConn,
 			to:   toConn,

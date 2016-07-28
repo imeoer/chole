@@ -5,11 +5,11 @@ import (
 	"net"
 )
 
-const CONN_LIMIT = 200
+const MAX_CONNECTION_COUNT = 200
 
 type Server struct {
 	fromLimit chan bool
-	toLimit chan bool
+	toLimit   chan bool
 }
 
 func (server Server) acquire(isFrom bool) {
@@ -22,9 +22,9 @@ func (server Server) acquire(isFrom bool) {
 
 func (server Server) release(isFrom bool) {
 	if isFrom {
-		<- server.fromLimit
+		<-server.fromLimit
 	} else {
-		<- server.toLimit
+		<-server.toLimit
 	}
 }
 
@@ -35,18 +35,21 @@ func (server Server) listen(isFrom bool, port string) chan net.Conn {
 	}
 	connPool := make(chan net.Conn)
 	go func() {
-    defer func() {
-      if err := recover(); err != nil {
-        log.Println("SERVER", err)
-      }
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("SERVER", err)
+			}
 			server.release(isFrom)
-      defer client.Close()
-    }()
+			defer client.Close()
+		}()
 		for {
 			server.acquire(isFrom)
 			conn, err := client.Accept()
 			if err != nil {
 				panic(err)
+			}
+			if isFrom {
+				newConn <- true
 			}
 			connPool <- conn
 		}
@@ -55,14 +58,14 @@ func (server Server) listen(isFrom bool, port string) chan net.Conn {
 }
 
 func (server Server) Start() {
-	server.fromLimit = make(chan bool, CONN_LIMIT)
-	server.toLimit = make(chan bool, CONN_LIMIT)
+	server.fromLimit = make(chan bool, MAX_CONNECTION_COUNT)
+	server.toLimit = make(chan bool, MAX_CONNECTION_COUNT)
 	fromChan := server.listen(true, CLIENT_SERVER_PORT)
 	toChan := server.listen(false, PROXY_SERVER_PORT)
 	go func() {
 		for {
-			fromConn := <- fromChan
-			toConn := <- toChan
+			fromConn := <-fromChan
+			toConn := <-toChan
 			proxy := Proxy{
 				from: fromConn,
 				to:   toConn,

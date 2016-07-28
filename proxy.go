@@ -2,12 +2,12 @@ package main
 
 import (
 	"io"
-	// "log"
+	"log"
 	"net"
 	"time"
 )
 
-const KEEP_ALIVE_TIMEOUT = 30 * time.Second
+const KEEP_ALIVE_TIMEOUT = 5 * time.Second
 
 type Proxy struct {
 	isServer bool
@@ -44,11 +44,13 @@ func (proxy Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 				proxy.init(src)
 				_, err := src.Read(buff)
 				if err != nil {
+					log.Println(err)
 					break
 				}
 			}
 		}
 		size, err := src.Read(buff)
+		// log.Println("Transport: ", size)
 		if err != nil {
 			break
 		}
