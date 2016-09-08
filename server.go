@@ -5,30 +5,11 @@ import (
 	"net"
 )
 
-const MAX_CONNECTION_COUNT = 200
-
 type Server struct {
-	fromLimit chan bool
-	toLimit   chan bool
+	clients map[string]net.Conn
 }
 
-func (server Server) acquire(isFrom bool) {
-	if isFrom {
-		server.fromLimit <- true
-	} else {
-		server.toLimit <- true
-	}
-}
-
-func (server Server) release(isFrom bool) {
-	if isFrom {
-		<-server.fromLimit
-	} else {
-		<-server.toLimit
-	}
-}
-
-func (server Server) listen(isFrom bool, port string) chan net.Conn {
+func (server *Server) listen(isFrom bool, port string) chan net.Conn {
 	client, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		panic(err)
@@ -39,17 +20,15 @@ func (server Server) listen(isFrom bool, port string) chan net.Conn {
 			if err := recover(); err != nil {
 				log.Println("SERVER", err)
 			}
-			server.release(isFrom)
 			defer client.Close()
 		}()
 		for {
-			server.acquire(isFrom)
 			conn, err := client.Accept()
 			if err != nil {
 				panic(err)
 			}
 			if isFrom {
-				newConn <- true
+				server.newConnect("chole.io")
 			}
 			connPool <- conn
 		}
@@ -57,27 +36,51 @@ func (server Server) listen(isFrom bool, port string) chan net.Conn {
 	return connPool
 }
 
-func (server Server) Start() {
-	server.fromLimit = make(chan bool, MAX_CONNECTION_COUNT)
-	server.toLimit = make(chan bool, MAX_CONNECTION_COUNT)
-	fromChan := server.listen(true, CLIENT_SERVER_PORT)
-	toChan := server.listen(false, PROXY_SERVER_PORT)
-	go func() {
-		for {
-			fromConn := <-fromChan
-			toConn := <-toChan
-			proxy := Proxy{
-				from: fromConn,
-				to:   toConn,
-				valid: func(data []byte) bool {
-					// domain := ParseDomain(data)
-					return true
-				},
-				closed: func(isFrom bool) {
-					server.release(isFrom)
-				},
+func (server *Server) newConnect(domain string) {
+	if conn, ok := server.clients[domain]; ok {
+		SendPacket(conn, []byte("new"))
+	}
+}
+
+func (server *Server) startManage(port string) {
+	manage := ManageServer{
+		port: port,
+		onData: func(conn net.Conn, buff []byte) {
+			domain := string(buff)
+			if domain != "" {
+				server.clients[domain] = conn
 			}
-			<-proxy.Start(true)
-		}
+		},
+	}
+	<-manage.Start()
+}
+
+func (server *Server) Start() chan bool {
+	status := make(chan bool)
+	server.clients = make(map[string]net.Conn)
+	go func() {
+		server.startManage(MANAGER_SERVER_PORT)
+		fromChan := server.listen(true, CLIENT_SERVER_PORT)
+		toChan := server.listen(false, PROXY_SERVER_PORT)
+		go func() {
+			for {
+				fromConn := <-fromChan
+				toConn := <-toChan
+				proxy := Proxy{
+					from: fromConn,
+					to:   toConn,
+					valid: func(data []byte) bool {
+						// domain := ParseDomain(data)
+						// log.Println(domain)
+						return true
+					},
+					closed: func(isFrom bool) {
+					},
+				}
+				<-proxy.Start(true)
+			}
+		}()
+		status <- true
 	}()
+	return status
 }
