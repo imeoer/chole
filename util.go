@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+	"math/rand"
 	"net"
 	"regexp"
 	"strings"
 	"sync/atomic"
-	"math/rand"
 	"time"
 )
 

@@ -6,14 +6,13 @@ import (
 )
 
 type Connection struct {
-	port string
-	conn net.Conn
+	manage net.Conn
+	from   chan net.Conn
+	to     chan net.Conn
 }
 
 type Server struct {
-	clients  map[string]net.Conn
-	fromChan chan Connection
-	toChan   chan Connection
+	clients map[string]Connection
 }
 
 func (server *Server) listen(isFrom bool, port string) {
@@ -35,11 +34,13 @@ func (server *Server) listen(isFrom bool, port string) {
 			}
 			if isFrom {
 				server.newConnect(port)
-				server.fromChan <- Connection{conn: conn, port: port}
+				connection := server.clients[port]
+				connection.from <- conn
 			} else {
 				toPort := RecvPacket(conn)
 				if toPort != nil {
-					server.toChan <- Connection{conn: conn, port: string(toPort)}
+					connection := server.clients[string(toPort)]
+					connection.to <- conn
 				}
 			}
 		}
@@ -47,8 +48,8 @@ func (server *Server) listen(isFrom bool, port string) {
 }
 
 func (server *Server) newConnect(port string) {
-	if conn, ok := server.clients[port]; ok {
-		SendPacket(conn, []byte(port))
+	if connection, ok := server.clients[port]; ok {
+		SendPacket(connection.manage, []byte(port))
 	}
 }
 
@@ -67,13 +68,27 @@ func (server *Server) newProxy(from net.Conn, to net.Conn) {
 	<-proxy.Start(true)
 }
 
+func (server *Server) waitProxy(connection Connection) {
+	for {
+		fromConn := <-connection.from
+		toConn := <-connection.to
+		server.newProxy(fromConn, toConn)
+	}
+}
+
 func (server *Server) newManage(port string) {
 	manage := ManageServer{
 		port: port,
 		onData: func(conn net.Conn, buff []byte) {
 			port := string(buff)
 			if port != "" {
-				server.clients[port] = conn
+				connection := Connection{
+					manage: conn,
+					from:   make(chan net.Conn),
+					to:     make(chan net.Conn),
+				}
+				server.clients[port] = connection
+				go server.waitProxy(connection)
 				server.listen(true, port)
 			}
 		},
@@ -83,19 +98,10 @@ func (server *Server) newManage(port string) {
 
 func (server *Server) Start() chan bool {
 	status := make(chan bool)
-	server.fromChan = make(chan Connection)
-	server.toChan = make(chan Connection)
-	server.clients = make(map[string]net.Conn)
+	server.clients = make(map[string]Connection)
 	go func() {
 		server.newManage(MANAGER_SERVER_PORT)
 		server.listen(false, PROXY_SERVER_PORT)
-		go func() {
-			for {
-				fromConn := (<-server.fromChan).conn
-				toConn := (<-server.toChan).conn
-				server.newProxy(fromConn, toConn)
-			}
-		}()
 		status <- true
 	}()
 	return status

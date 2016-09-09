@@ -1,27 +1,27 @@
 package main
 
 import (
-  "log"
-  "io/ioutil"
-  "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
 )
 
 type Rule struct {
-  Out string `yaml:"out"`
-  In string `yaml:"in"`
+	Out string `yaml:"out"`
+	In  string `yaml:"in"`
 }
 
 type Config struct {
-  Rules map[string]Rule `yaml:"rules"`
+	Rules map[string]Rule `yaml:"rules"`
 }
 
 func (config *Config) Parse() {
-  content, err := ioutil.ReadFile("./config.yaml")
-  if err != nil {
-    log.Fatal(err)
-  }
-  err = yaml.Unmarshal(content, &config)
-  if err != nil {
-    log.Fatal(err)
-  }
+	content, err := ioutil.ReadFile("./config.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = yaml.Unmarshal(content, &config)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

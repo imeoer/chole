@@ -1,9 +1,7 @@
 package main
 
-const CLIENT_SERVER_PORT = "8003"
-const PROXY_SERVER_PORT = "8002"
-const MANAGER_SERVER_PORT = "8001"
-const APP_SERVER_PORT = "8000"
+const PROXY_SERVER_PORT = "7521"
+const MANAGER_SERVER_PORT = "7520"
 
 var counter *Counter
 
@@ -16,7 +14,7 @@ func main() {
 	config := new(Config)
 	config.Parse()
 
-	status := make(chan bool, 0)
+	status := make(chan bool, len(config.Rules)-1)
 
 	for name, rule := range config.Rules {
 		client := Client{
