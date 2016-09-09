@@ -1,0 +1,7 @@
+rules:
+  web:
+    out: 8003
+    in: 8000
+  ssh:
+    out: 8004
+    in: 8001

@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"log"
 	"net"
 )
 
@@ -13,7 +12,7 @@ type Proxy struct {
 	usedChan chan bool
 	from     net.Conn
 	to       net.Conn
-	init     func(io.ReadWriter)
+	init     func(net.Conn)
 	valid    func([]byte) bool
 	closed   func(bool)
 }
@@ -38,12 +37,7 @@ func (proxy *Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 		if direct && !proxy.inited {
 			proxy.inited = true
 			if proxy.init != nil {
-				proxy.init(src)
-				_, err := src.Read(buff)
-				if err != nil {
-					log.Println(err)
-					break
-				}
+				proxy.init(src.(net.Conn))
 			}
 		}
 		size, err := src.Read(buff)

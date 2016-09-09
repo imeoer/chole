@@ -8,6 +8,12 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"math/rand"
+	"time"
+)
+
+const (
+	RANDOM_STRING_LEN = 5
 )
 
 type Counter struct {
@@ -56,4 +62,14 @@ func ParseDomain(data []byte) (domain string) {
 		return strings.TrimSpace(rets[1])
 	}
 	return
+}
+
+func RandomString() string {
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, RANDOM_STRING_LEN)
+	for i := 0; i < RANDOM_STRING_LEN; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
 }

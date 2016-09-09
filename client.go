@@ -6,6 +6,9 @@ import (
 )
 
 type Client struct {
+	name string
+	in   string
+	out  string
 }
 
 func (client *Client) connect(addr string) net.Conn {
@@ -19,10 +22,13 @@ func (client *Client) connect(addr string) net.Conn {
 
 func (client *Client) newConnect() {
 	fromConn := client.connect(":" + PROXY_SERVER_PORT)
-	toConn := client.connect("127.0.0.1:" + APP_SERVER_PORT)
+	toConn := client.connect("127.0.0.1:" + client.in)
 	proxy := Proxy{
 		from: fromConn,
 		to:   toConn,
+		init: func(fromConn net.Conn) {
+			SendPacket(fromConn, []byte(client.out))
+		},
 		valid: func(data []byte) bool {
 			// domain := ParseDomain(data)
 			// log.Println(domain)
@@ -32,19 +38,20 @@ func (client *Client) newConnect() {
 	<-proxy.Start(false)
 }
 
-func (client *Client) Start(port string) {
-	var manage ManageClient
-	manage = ManageClient{
-		port: port,
+func (client *Client) Start() chan bool {
+	manage := ManageClient{
+		port: MANAGER_SERVER_PORT,
 		onConnect: func(conn net.Conn) {
-			SendPacket(conn, []byte("chole.io"))
+			if client.out != "" {
+				SendPacket(conn, []byte(client.out))
+			}
 		},
 		onData: func(data []byte) {
 			event := string(data)
-			if event == "new" {
+			if event != "" {
 				client.newConnect()
 			}
 		},
 	}
-	manage.Start()
+	return manage.Start()
 }

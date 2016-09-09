@@ -24,11 +24,6 @@ func (server *ManageServer) Start() chan bool {
 	if err != nil {
 		log.Fatal("MANAGE SERVER", err)
 	}
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println("SERVER", err)
-		}
-	}()
 	go func() {
 		defer connect.Close()
 		status <- true
@@ -54,19 +49,24 @@ func (server *ManageServer) Start() chan bool {
 	return status
 }
 
-func (client *ManageClient) Start() {
+func (client *ManageClient) Start() chan bool {
+	status := make(chan bool)
 	conn, err := net.Dial("tcp", ":"+client.port)
 	if err != nil {
 		log.Fatal("MANAGE CLIENT", err)
-		return
 	}
-	client.conn = conn
-	client.onConnect(conn)
-	for {
-		buff := RecvPacket(conn)
-		if err != nil || buff == nil {
-			break
+	go func() {
+		defer conn.Close()
+		status <- true
+		client.conn = conn
+		client.onConnect(conn)
+		for {
+			buff := RecvPacket(conn)
+			if err != nil || buff == nil {
+				break
+			}
+			client.onData(buff)
 		}
-		client.onData(buff)
-	}
+	}()
+	return status
 }
