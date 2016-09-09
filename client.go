@@ -6,9 +6,10 @@ import (
 )
 
 type Client struct {
-	name string
-	in   string
-	out  string
+	server string
+	name   string
+	in     string
+	out    string
 }
 
 func (client *Client) connect(addr string) net.Conn {
@@ -21,8 +22,8 @@ func (client *Client) connect(addr string) net.Conn {
 }
 
 func (client *Client) newConnect() {
-	fromConn := client.connect(":" + PROXY_SERVER_PORT)
-	toConn := client.connect("127.0.0.1:" + client.in)
+	fromConn := client.connect(client.server + ":" + PROXY_SERVER_PORT)
+	toConn := client.connect(client.in)
 	proxy := Proxy{
 		from: fromConn,
 		to:   toConn,

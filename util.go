@@ -44,12 +44,12 @@ func RecvPacket(conn net.Conn) []byte {
 
 func (counter *Counter) Up() {
 	atomic.AddInt64(&((*counter).count), 1)
-	// log.Printf("Connections: + %d\n", counter.count)
+	log.Printf("Connections: + %d\n", counter.count)
 }
 
 func (counter *Counter) Down() {
 	atomic.AddInt64(&((*counter).count), -1)
-	// log.Printf("Connections: - %d\n", counter.count)
+	log.Printf("Connections: - %d\n", counter.count)
 }
 
 func ParseDomain(data []byte) (domain string) {

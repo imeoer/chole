@@ -52,7 +52,7 @@ func (proxy *Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 				break
 			}
 		}
-		if size, err = dst.Write(data); err != nil {
+		if _, err = dst.Write(data); err != nil {
 			break
 		}
 	}

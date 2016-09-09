@@ -1,9 +1,11 @@
 package main
 
 import (
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"strconv"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Rule struct {
@@ -12,7 +14,8 @@ type Rule struct {
 }
 
 type Config struct {
-	Rules map[string]Rule `yaml:"rules"`
+	Server string           `yaml:"server"`
+	Rules  map[string]*Rule `yaml:"rules"`
 }
 
 func (config *Config) Parse() {
@@ -20,8 +23,18 @@ func (config *Config) Parse() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = yaml.Unmarshal(content, &config)
-	if err != nil {
+	if err = yaml.Unmarshal(content, &config); err != nil {
 		log.Fatal(err)
+	}
+	if config.Server == "" {
+		config.Server = "localhost"
+	}
+	for _, rule := range config.Rules {
+		if rule.Out == "" {
+			rule.Out = rule.In
+		}
+		if _, err := strconv.Atoi(rule.In); err == nil {
+			rule.In = ":" + rule.In
+		}
 	}
 }

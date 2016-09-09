@@ -18,9 +18,10 @@ func main() {
 
 	for name, rule := range config.Rules {
 		client := Client{
-			name: name,
-			in:   rule.In,
-			out:  rule.Out,
+			server: config.Server,
+			name:   name,
+			in:     rule.In,
+			out:    rule.Out,
 		}
 		status <- (<-client.Start())
 	}
