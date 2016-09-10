@@ -1,28 +1,27 @@
 package main
 
 import (
-	"log"
 	"net"
 )
 
 type ManageServer struct {
 	port      string
 	onConnect func()
-	onData    func(net.Conn, []byte)
+	onData    func(net.Conn, *Packet)
 }
 
 type ManageClient struct {
 	port      string
 	conn      net.Conn
 	onConnect func(net.Conn)
-	onData    func([]byte)
+	onData    func(net.Conn, *Packet)
 }
 
 func (server *ManageServer) Start() chan bool {
 	status := make(chan bool)
 	connect, err := net.Listen("tcp", ":"+server.port)
 	if err != nil {
-		log.Fatal("MANAGE SERVER", err)
+		Fatal("MANAGE SERVER", err)
 	}
 	go func() {
 		defer connect.Close()
@@ -37,11 +36,11 @@ func (server *ManageServer) Start() chan bool {
 			}
 			go func() {
 				for {
-					buff := RecvPacket(conn)
-					if buff == nil {
-						break
+					packet := RecvPacket(conn)
+					if packet == nil {
+						continue
 					}
-					server.onData(conn, buff)
+					server.onData(conn, packet)
 				}
 			}()
 		}
@@ -53,7 +52,7 @@ func (client *ManageClient) Start() chan bool {
 	status := make(chan bool)
 	conn, err := net.Dial("tcp", ":"+client.port)
 	if err != nil {
-		log.Fatal("MANAGE CLIENT", err)
+		Fatal("MANAGE CLIENT", err)
 	}
 	go func() {
 		defer conn.Close()
@@ -61,11 +60,11 @@ func (client *ManageClient) Start() chan bool {
 		client.conn = conn
 		client.onConnect(conn)
 		for {
-			buff := RecvPacket(conn)
-			if err != nil || buff == nil {
-				break
+			packet := RecvPacket(conn)
+			if packet == nil {
+				continue
 			}
-			client.onData(buff)
+			client.onData(conn, packet)
 		}
 	}()
 	return status

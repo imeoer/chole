@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"net"
+	"time"
 )
 
 type Connection struct {
@@ -16,30 +16,27 @@ type Server struct {
 }
 
 func (server *Server) listen(isFrom bool, port string) {
-	client, err := net.Listen("tcp", ":"+port)
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		panic(err)
+		Fatal("Server", err)
 	}
 	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Println("SERVER", err)
-			}
-			defer client.Close()
-		}()
+		defer listener.Close()
 		for {
-			conn, err := client.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
-				panic(err)
+				Error("Server", err)
+				continue
 			}
 			if isFrom {
 				server.newConnect(port)
 				connection := server.clients[port]
 				connection.from <- conn
 			} else {
-				toPort := RecvPacket(conn)
-				if toPort != nil {
-					connection := server.clients[string(toPort)]
+				packet := RecvPacket(conn)
+				if packet != nil && packet.event == "REQUEST_PIPE" {
+					fromPort := packet.data
+					connection := server.clients[fromPort]
 					connection.to <- conn
 				}
 			}
@@ -49,7 +46,7 @@ func (server *Server) listen(isFrom bool, port string) {
 
 func (server *Server) newConnect(port string) {
 	if connection, ok := server.clients[port]; ok {
-		SendPacket(connection.manage, []byte(port))
+		SendPacket(connection.manage, "REQUEST_COMING", port)
 	}
 }
 
@@ -71,17 +68,23 @@ func (server *Server) newProxy(from net.Conn, to net.Conn) {
 func (server *Server) waitProxy(connection Connection) {
 	for {
 		fromConn := <-connection.from
-		toConn := <-connection.to
-		server.newProxy(fromConn, toConn)
+		select {
+		case toConn := <-connection.to:
+			server.newProxy(fromConn, toConn)
+		case <-time.After(time.Second * 5):
+			Error("SERVER", "Reset Connection")
+			TryClose(fromConn)
+			continue
+		}
 	}
 }
 
 func (server *Server) newManage(port string) {
 	manage := ManageServer{
 		port: port,
-		onData: func(conn net.Conn, buff []byte) {
-			port := string(buff)
-			if port != "" {
+		onData: func(conn net.Conn, packet *Packet) {
+			if packet != nil && packet.event == "REQUEST_PORT" {
+				port := packet.data
 				connection := Connection{
 					manage: conn,
 					from:   make(chan net.Conn),
