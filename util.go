@@ -74,9 +74,12 @@ func RecvPacket(conn net.Conn) *Packet {
 		n, err = conn.Read(data)
 		if err == nil && n > 0 {
 			Log("RECEIVE", string(data))
-			dataAry := strings.Split(string(data), ":")
-			packet := Packet{event: dataAry[0], data: dataAry[1]}
-			return &packet
+			dataAry := strings.SplitN(string(data), ":", 2)
+			length := len(dataAry)
+			if length == 2 {
+				packet := Packet{event: dataAry[0], data: dataAry[1]}
+				return &packet
+			}
 		}
 	}
 	return nil

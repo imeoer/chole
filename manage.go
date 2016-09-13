@@ -7,21 +7,22 @@ import (
 type ManageServer struct {
 	port      string
 	onConnect func()
-	onData    func(net.Conn, *Packet)
+	onEvent   func(net.Conn, string, string)
+	onClose   func(net.Conn)
 }
 
 type ManageClient struct {
 	port      string
-	conn      net.Conn
 	onConnect func(net.Conn)
-	onData    func(net.Conn, *Packet)
+	onEvent   func(net.Conn, string, string)
+	onClose   func(net.Conn)
 }
 
 func (server *ManageServer) Start() chan bool {
 	status := make(chan bool)
 	connect, err := net.Listen("tcp", ":"+server.port)
 	if err != nil {
-		Fatal("MANAGE SERVER", err)
+		Fatal("MANAGE", err)
 	}
 	go func() {
 		defer connect.Close()
@@ -29,18 +30,26 @@ func (server *ManageServer) Start() chan bool {
 		for {
 			conn, err := connect.Accept()
 			if err != nil {
-				panic(err)
+				Error("MANAGE", err)
+				continue
 			}
 			if server.onConnect != nil {
-				server.onConnect()
+				go server.onConnect()
 			}
 			go func() {
+				defer func() {
+					if server.onClose != nil {
+						server.onClose(conn)
+					}
+					conn.Close()
+				}()
 				for {
 					packet := RecvPacket(conn)
 					if packet == nil {
-						continue
+						Error("MANAGE", "client disconnected")
+						break
 					}
-					server.onData(conn, packet)
+					go server.onEvent(conn, packet.event, packet.data)
 				}
 			}()
 		}
@@ -52,19 +61,23 @@ func (client *ManageClient) Start() chan bool {
 	status := make(chan bool)
 	conn, err := net.Dial("tcp", ":"+client.port)
 	if err != nil {
-		Fatal("MANAGE CLIENT", err)
+		Fatal("MANAGE", "can't connect to server")
 	}
 	go func() {
-		defer conn.Close()
+		defer func() {
+			if client.onClose != nil {
+				client.onClose(conn)
+			}
+			conn.Close()
+		}()
 		status <- true
-		client.conn = conn
-		client.onConnect(conn)
+		go client.onConnect(conn)
 		for {
 			packet := RecvPacket(conn)
 			if packet == nil {
-				continue
+				Fatal("MANAGE", "server disconnected")
 			}
-			client.onData(conn, packet)
+			go client.onEvent(conn, packet.event, packet.data)
 		}
 	}()
 	return status

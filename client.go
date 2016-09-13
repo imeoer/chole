@@ -14,13 +14,13 @@ type Client struct {
 func (client *Client) connect(addr string) net.Conn {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		Error("Client", err)
+		Error("CLIENT", err)
 		return nil
 	}
 	return conn
 }
 
-func (client *Client) newConnect() bool {
+func (client *Client) newConnect(conn net.Conn) bool {
 	fromConn := client.connect(client.server + ":" + PROXY_SERVER_PORT)
 	toConn := client.connect(client.in)
 	if fromConn == nil || toConn == nil {
@@ -32,7 +32,8 @@ func (client *Client) newConnect() bool {
 		from: fromConn,
 		to:   toConn,
 		init: func(fromConn net.Conn) {
-			SendPacket(fromConn, "REQUEST_PIPE", client.out)
+			localAddr := conn.LocalAddr().String()
+			SendPacket(fromConn, "REQUEST_PROXY", localAddr+":"+client.out)
 		},
 		valid: func(data []byte) bool {
 			// domain := ParseDomain(data)
@@ -52,9 +53,9 @@ func (client *Client) Start() chan bool {
 				SendPacket(conn, "REQUEST_PORT", client.out)
 			}
 		},
-		onData: func(conn net.Conn, packet *Packet) {
-			if packet.event == "REQUEST_COMING" {
-				client.newConnect()
+		onEvent: func(conn net.Conn, event string, data string) {
+			if event == "REQUEST_COMING" {
+				client.newConnect(conn)
 			}
 		},
 	}
