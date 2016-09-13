@@ -7,9 +7,11 @@ A elegant tunnels of exposing private network to the internet.
 
 ## Usage
 
-### # run on server: `chole -s`
+**# run on server:**
 
-### # configure rule in config.yaml:
+`chole -s`
+
+**# configure rule in config.yaml:**
 
 ```
 rules:
@@ -21,4 +23,6 @@ rules:
     in: 192.168.1.2:22
 ```
 
-### # run on local: `chole`
+**# run on local:**
+
+`chole`
