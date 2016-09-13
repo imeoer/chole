@@ -2,3 +2,6 @@ rules:
   web1:
     out: 8003
     in: 8000
+  web2:
+    out: 8004
+    in: 8000

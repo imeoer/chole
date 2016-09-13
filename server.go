@@ -114,13 +114,19 @@ func (server *Server) newManage(port string) {
 		onEvent: func(conn net.Conn, event string, data string) {
 			if event == "REQUEST_PORT" {
 				reqPort := data
-				remoteAddr := conn.RemoteAddr().String()
+				for addr := range server.clients {
+					if strings.HasSuffix(addr, reqPort) {
+						SendPacket(conn, "REQUEST_PORT_REJECT", reqPort)
+						return
+					}
+				}
 				connection := Connection{
 					manage:   conn,
 					from:     make(chan net.Conn),
 					to:       make(chan net.Conn),
 					listener: server.listen(true, reqPort, false),
 				}
+				remoteAddr := conn.RemoteAddr().String()
 				server.clients[remoteAddr+":"+reqPort] = connection
 				go server.waitProxy(connection)
 			}

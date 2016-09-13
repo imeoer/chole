@@ -69,14 +69,13 @@ func RecvPacket(conn net.Conn) *Packet {
 	lenData := make([]byte, 2)
 	n, err := conn.Read(lenData)
 	if err == nil && n == 2 {
-		len := binary.BigEndian.Uint16(lenData)
-		data := make([]byte, len)
+		length := binary.BigEndian.Uint16(lenData)
+		data := make([]byte, length)
 		n, err = conn.Read(data)
 		if err == nil && n > 0 {
 			Log("RECEIVE", string(data))
 			dataAry := strings.SplitN(string(data), ":", 2)
-			length := len(dataAry)
-			if length == 2 {
+			if len(dataAry) == 2 {
 				packet := Packet{event: dataAry[0], data: dataAry[1]}
 				return &packet
 			}

@@ -12,6 +12,7 @@ type ManageServer struct {
 }
 
 type ManageClient struct {
+	conn      net.Conn
 	port      string
 	onConnect func(net.Conn)
 	onEvent   func(net.Conn, string, string)
@@ -57,12 +58,17 @@ func (server *ManageServer) Start() chan bool {
 	return status
 }
 
+func (client *ManageClient) Close() {
+	TryClose(client.conn)
+}
+
 func (client *ManageClient) Start() chan bool {
 	status := make(chan bool)
 	conn, err := net.Dial("tcp", ":"+client.port)
 	if err != nil {
 		Fatal("MANAGE", "can't connect to server")
 	}
+	client.conn = conn
 	go func() {
 		defer func() {
 			if client.onClose != nil {
@@ -75,7 +81,8 @@ func (client *ManageClient) Start() chan bool {
 		for {
 			packet := RecvPacket(conn)
 			if packet == nil {
-				Fatal("MANAGE", "server disconnected")
+				Error("MANAGE", "server disconnected")
+				break
 			}
 			go client.onEvent(conn, packet.event, packet.data)
 		}

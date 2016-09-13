@@ -58,6 +58,11 @@ func (proxy *Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 	}
 }
 
+func (proxy *Proxy) Close() {
+	TryClose(proxy.from)
+	TryClose(proxy.to)
+}
+
 func (proxy *Proxy) Start(isServer bool) chan bool {
 	proxy.isServer = isServer
 	proxy.usedChan = make(chan bool)

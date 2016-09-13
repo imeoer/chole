@@ -30,6 +30,9 @@ func (config *Config) Parse() {
 		config.Server = "localhost"
 	}
 	for _, rule := range config.Rules {
+		if rule.In == "" {
+			Fatal("CONFIG", "must specify 'in' port in rule")
+		}
 		if rule.Out == "" {
 			rule.Out = rule.In
 		}
