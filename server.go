@@ -134,10 +134,10 @@ func (server *Server) newManage(port string) {
 		onClose: func(conn net.Conn) {
 			remoteAddr := conn.RemoteAddr().String()
 			for addr, connection := range server.clients {
-				Log("CLOSE", remoteAddr)
 				if strings.Index(addr, remoteAddr) == 0 {
 					connection.listener.Close()
 					delete(server.clients, addr)
+					Log("CLOSE", remoteAddr)
 				}
 			}
 		},

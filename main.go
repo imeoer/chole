@@ -18,18 +18,6 @@ func main() {
 		server.Start()
 	} else {
 		config := new(Config)
-		config.Parse()
-
-		status := make(chan bool, len(config.Rules)-1)
-
-		for name, rule := range config.Rules {
-			client := Client{
-				server: config.Server,
-				name:   name,
-				in:     rule.In,
-				out:    rule.Out,
-			}
-			status <- (<-client.Start())
-		}
+		config.Watch()
 	}
 }

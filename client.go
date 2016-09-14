@@ -10,7 +10,7 @@ type Client struct {
 	in     string
 	out    string
 	proxys []Proxy
-	manage ManageClient
+	manage *ManageClient
 }
 
 func (client *Client) connect(addr string) net.Conn {
@@ -55,7 +55,7 @@ func (client *Client) Close() {
 	}
 }
 
-func (client *Client) Start() chan bool {
+func (client *Client) Start() bool {
 	manage := ManageClient{
 		port: MANAGER_SERVER_PORT,
 		onConnect: func(conn net.Conn) {
@@ -74,6 +74,6 @@ func (client *Client) Start() chan bool {
 		},
 	}
 	client.proxys = make([]Proxy, 0)
-	client.manage = manage
-	return manage.Start()
+	client.manage = &manage
+	return <-manage.Start()
 }
