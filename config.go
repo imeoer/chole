@@ -19,7 +19,7 @@ type Config struct {
 	Rules  map[string]*Rule `yaml:"rules"`
 }
 
-var clients map[string]Client
+var clients map[string]*Client
 
 func (rule Rule) getId(name string) string {
 	return fmt.Sprintf("%s:%s:%s", name, rule.In, rule.Out)
@@ -74,14 +74,16 @@ func (config *Config) apply() {
 				in:     rule.In,
 				out:    rule.Out,
 			}
-			client.Start()
-			clients[id] = client
+			status := <-client.Start()
+			if status {
+				clients[id] = &client
+			}
 		}
 	}
 }
 
 func (config *Config) Watch() {
-	clients = make(map[string]Client)
+	clients = make(map[string]*Client)
 	config.apply()
 
 	watcher, err := fsnotify.NewWatcher()

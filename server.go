@@ -129,6 +129,7 @@ func (server *Server) newManage(port string) {
 				remoteAddr := conn.RemoteAddr().String()
 				server.clients[remoteAddr+":"+reqPort] = connection
 				go server.waitProxy(connection)
+				SendPacket(conn, "REQUEST_PORT_ACCEPT", reqPort)
 			}
 		},
 		onClose: func(conn net.Conn) {

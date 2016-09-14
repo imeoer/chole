@@ -9,7 +9,7 @@ type Client struct {
 	name   string
 	in     string
 	out    string
-	proxys []Proxy
+	proxys []*Proxy
 	manage *ManageClient
 }
 
@@ -43,7 +43,7 @@ func (client *Client) newConnect(conn net.Conn) bool {
 			return true
 		},
 	}
-	client.proxys = append(client.proxys, proxy)
+	client.proxys = append(client.proxys, &proxy)
 	<-proxy.Start(false)
 	return true
 }
@@ -53,9 +53,11 @@ func (client *Client) Close() {
 	for _, proxy := range client.proxys {
 		proxy.Close()
 	}
+	client.proxys = client.proxys[:0]
 }
 
-func (client *Client) Start() bool {
+func (client *Client) Start() chan bool {
+	status := make(chan bool)
 	manage := ManageClient{
 		port: MANAGER_SERVER_PORT,
 		onConnect: func(conn net.Conn) {
@@ -66,14 +68,19 @@ func (client *Client) Start() bool {
 			case "REQUEST_COMING":
 				client.newConnect(conn)
 				break
+			case "REQUEST_PORT_ACCEPT":
+				status <- true
+				break
 			case "REQUEST_PORT_REJECT":
 				Error("CLIENT", "requested port "+client.out+" has been used")
 				conn.Close()
+				status <- false
 				break
 			}
 		},
 	}
-	client.proxys = make([]Proxy, 0)
+	client.proxys = make([]*Proxy, 0)
 	client.manage = &manage
-	return <-manage.Start()
+	<-manage.Start()
+	return status
 }
