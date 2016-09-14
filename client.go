@@ -34,8 +34,8 @@ func (client *Client) newConnect(conn net.Conn) bool {
 		from: fromConn,
 		to:   toConn,
 		init: func(fromConn net.Conn) {
-			localAddr := conn.LocalAddr().String()
-			SendPacket(fromConn, "REQUEST_PROXY", localAddr+":"+client.out)
+			remoteAddr := client.manage.remoteAddr
+			SendPacket(fromConn, "REQUEST_PROXY", remoteAddr)
 		},
 		valid: func(data []byte) bool {
 			// domain := ParseDomain(data)
@@ -59,7 +59,7 @@ func (client *Client) Close() {
 func (client *Client) Start() chan bool {
 	status := make(chan bool)
 	manage := ManageClient{
-		port: MANAGER_SERVER_PORT,
+		server: client.server + ":" + MANAGER_SERVER_PORT,
 		onConnect: func(conn net.Conn) {
 			SendPacket(conn, "REQUEST_PORT", client.out)
 		},
@@ -69,6 +69,7 @@ func (client *Client) Start() chan bool {
 				client.newConnect(conn)
 				break
 			case "REQUEST_PORT_ACCEPT":
+				client.manage.remoteAddr = data
 				status <- true
 				break
 			case "REQUEST_PORT_REJECT":

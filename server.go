@@ -100,7 +100,7 @@ func (server *Server) waitProxy(connection Connection) {
 		select {
 		case toConn := <-connection.to:
 			server.newProxy(fromConn, toConn)
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Second * 10):
 			Error("SERVER", "reset connection")
 			TryClose(fromConn)
 			continue
@@ -126,10 +126,10 @@ func (server *Server) newManage(port string) {
 					to:       make(chan net.Conn),
 					listener: server.listen(true, reqPort, false),
 				}
-				remoteAddr := conn.RemoteAddr().String()
-				server.clients[remoteAddr+":"+reqPort] = connection
+				remoteAddr := conn.RemoteAddr().String() + ":" + reqPort
+				server.clients[remoteAddr] = connection
 				go server.waitProxy(connection)
-				SendPacket(conn, "REQUEST_PORT_ACCEPT", reqPort)
+				SendPacket(conn, "REQUEST_PORT_ACCEPT", remoteAddr)
 			}
 		},
 		onClose: func(conn net.Conn) {
