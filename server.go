@@ -42,9 +42,11 @@ func (server *Server) listen(isFrom bool, port string, block bool) net.Listener 
 				} else {
 					packet := RecvPacket(conn)
 					if packet != nil && packet.event == "REQUEST_PROXY" {
-						if ok := server.tryProxy(conn, packet.data); !ok {
-							conn.Close()
-						}
+						go func() {
+							if ok := server.tryProxy(conn, packet.data); !ok {
+								conn.Close()
+							}
+						}()
 					}
 				}
 			}()

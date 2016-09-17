@@ -59,10 +59,6 @@ func (server *ManageServer) Start() chan bool {
 	return status
 }
 
-func (client *ManageClient) Close() {
-	TryClose(client.conn)
-}
-
 func (client *ManageClient) Start() chan bool {
 	status := make(chan bool)
 	conn, err := net.Dial("tcp", client.server)

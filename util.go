@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	random "crypto/rand"
 	"encoding/binary"
+	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -120,4 +123,13 @@ func RandomString() string {
 		result[i] = chars[rand.Intn(len(chars))]
 	}
 	return string(result)
+}
+
+func UUID() string {
+	rand.Seed(time.Now().UTC().UnixNano())
+	uuid := make([]byte, 16)
+	io.ReadFull(random.Reader, uuid)
+	uuid[8] = uuid[8]&^0xc0 | 0x80
+	uuid[6] = uuid[6]&^0xf0 | 0x40
+	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }

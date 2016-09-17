@@ -22,13 +22,13 @@ func (client *Client) connect(addr string) net.Conn {
 	return conn
 }
 
-func (client *Client) newConnect(conn net.Conn) bool {
+func (client *Client) newConnect(conn net.Conn) chan bool {
 	fromConn := client.connect(client.server + ":" + PROXY_SERVER_PORT)
 	toConn := client.connect(client.in)
 	if fromConn == nil || toConn == nil {
 		TryClose(fromConn)
 		TryClose(toConn)
-		return false
+		return nil
 	}
 	proxy := Proxy{
 		from: fromConn,
@@ -44,12 +44,11 @@ func (client *Client) newConnect(conn net.Conn) bool {
 		},
 	}
 	client.proxys = append(client.proxys, &proxy)
-	<-proxy.Start(false)
-	return true
+	return proxy.Start(false)
 }
 
 func (client *Client) Close() {
-	client.manage.Close()
+	TryClose(client.manage.conn)
 	for _, proxy := range client.proxys {
 		proxy.Close()
 	}
@@ -66,7 +65,7 @@ func (client *Client) Start() chan bool {
 		onEvent: func(conn net.Conn, event string, data string) {
 			switch event {
 			case "REQUEST_COMING":
-				client.newConnect(conn)
+				<-client.newConnect(conn)
 				break
 			case "REQUEST_PORT_ACCEPT":
 				client.manage.remoteAddr = data
