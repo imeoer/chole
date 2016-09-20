@@ -5,6 +5,7 @@ import "os"
 const (
 	PROXY_SERVER_PORT   = "7521"
 	MANAGER_SERVER_PORT = "7520"
+	CONSOLE_SERVER_PORT = "8081"
 )
 
 var counter *Counter

@@ -15,11 +15,10 @@ type Rule struct {
 }
 
 type Config struct {
-	Server string           `yaml:"server"`
-	Rules  map[string]*Rule `yaml:"rules"`
+	Server  string           `yaml:"server"`
+	Rules   map[string]*Rule `yaml:"rules"`
+	Clients map[string]*Client
 }
-
-var clients map[string]*Client
 
 func (rule Rule) getId(name string) string {
 	return fmt.Sprintf("%s:%s:%s", name, rule.In, rule.Out)
@@ -58,32 +57,49 @@ func (config *Config) apply() {
 		idMap[id] = true
 	}
 
-	for id, client := range clients {
+	for id, client := range config.Clients {
 		if _, ok := idMap[id]; !ok {
 			client.Close()
-			delete(clients, id)
+			config.RemoveClient(id)
 		}
 	}
 
 	for name, rule := range config.Rules {
 		id := rule.getId(name)
-		if _, ok := clients[id]; !ok {
+		if _, ok := config.Clients[id]; !ok {
 			client := Client{
+				id:     id,
 				server: config.Server,
 				name:   name,
 				in:     rule.In,
 				out:    rule.Out,
+				onClose: func(id string) {
+					config.RemoveClient(id)
+				},
+				onEvent: func(id string, event string, data string) {
+					Log("EVENT", id+","+event+","+data)
+				},
 			}
 			status := <-client.Start()
 			if status {
-				clients[id] = &client
+				config.AddClient(&client)
 			}
 		}
 	}
 }
 
+func (config *Config) AddClient(client *Client) {
+	config.Clients[client.id] = client
+}
+
+func (config *Config) RemoveClient(id string) {
+	if _, ok := config.Clients[id]; ok {
+		delete(config.Clients, id)
+	}
+}
+
 func (config *Config) Watch() {
-	clients = make(map[string]*Client)
+	config.Clients = make(map[string]*Client)
 	config.apply()
 
 	watcher, err := fsnotify.NewWatcher()
@@ -112,5 +128,8 @@ func (config *Config) Watch() {
 	if err != nil {
 		Fatal("CONFIG", err)
 	}
+
+	push := Push{}
+	push.Start()
 	<-done
 }

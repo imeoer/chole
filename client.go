@@ -2,15 +2,19 @@ package main
 
 import (
 	"net"
+	"strconv"
 )
 
 type Client struct {
-	server string
-	name   string
-	in     string
-	out    string
-	proxys []*Proxy
-	manage *ManageClient
+	id      string
+	server  string
+	name    string
+	in      string
+	out     string
+	proxys  map[string]*Proxy
+	manage  *ManageClient
+	onClose func(string)
+	onEvent func(string, string, string)
 }
 
 func (client *Client) connect(addr string) net.Conn {
@@ -31,6 +35,7 @@ func (client *Client) newConnect(conn net.Conn) chan bool {
 		return nil
 	}
 	proxy := Proxy{
+		id:   UUID(),
 		from: fromConn,
 		to:   toConn,
 		init: func(fromConn net.Conn) {
@@ -42,17 +47,43 @@ func (client *Client) newConnect(conn net.Conn) chan bool {
 			// log.Println(domain)
 			return true
 		},
+		onData: func(id string, data []byte) {
+			client.onData(id, data)
+		},
+		closed: func(id string) {
+			client.onProxyClose(id)
+		},
 	}
-	client.proxys = append(client.proxys, &proxy)
+	client.addProxy(&proxy)
 	return proxy.Start(false)
+}
+
+func (client *Client) addProxy(proxy *Proxy) {
+	client.proxys[proxy.id] = proxy
+	client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(len(client.proxys)))
+}
+
+func (client *Client) removeProxy(id string) {
+	if _, ok := client.proxys[id]; ok {
+		delete(client.proxys, id)
+		client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(len(client.proxys)))
+	}
+}
+
+func (client *Client) onProxyClose(id string) {
+	client.removeProxy(id)
+}
+
+func (client *Client) onData(id string, data []byte) {
+	client.onEvent(client.id, "DATA", strconv.Itoa(len(data)))
 }
 
 func (client *Client) Close() {
 	TryClose(client.manage.conn)
 	for _, proxy := range client.proxys {
 		proxy.Close()
+		client.removeProxy(proxy.id)
 	}
-	client.proxys = client.proxys[:0]
 }
 
 func (client *Client) Start() chan bool {
@@ -78,8 +109,11 @@ func (client *Client) Start() chan bool {
 				break
 			}
 		},
+		onClose: func(net.Conn) {
+			client.onClose(client.id)
+		},
 	}
-	client.proxys = make([]*Proxy, 0)
+	client.proxys = make(map[string]*Proxy)
 	client.manage = &manage
 	<-manage.Start()
 	return status

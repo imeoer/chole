@@ -6,6 +6,7 @@ import (
 )
 
 type Proxy struct {
+	id       string
 	isServer bool
 	inited   bool
 	checked  bool
@@ -14,7 +15,8 @@ type Proxy struct {
 	to       net.Conn
 	init     func(net.Conn)
 	valid    func([]byte) bool
-	closed   func(bool)
+	closed   func(string)
+	onData   func(string, []byte)
 }
 
 func (proxy *Proxy) pipe(src, dst io.ReadWriter, direct bool) {
@@ -29,7 +31,7 @@ func (proxy *Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 		proxy.from.Close()
 		proxy.to.Close()
 		if proxy.closed != nil {
-			proxy.closed(direct)
+			proxy.closed(proxy.id)
 		}
 		proxy.usedChan <- true
 	}()
@@ -54,6 +56,9 @@ func (proxy *Proxy) pipe(src, dst io.ReadWriter, direct bool) {
 		}
 		if _, err = dst.Write(data); err != nil {
 			break
+		}
+		if proxy.onData != nil {
+			go proxy.onData(proxy.id, data)
 		}
 	}
 }

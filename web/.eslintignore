@@ -1,2 +1,4 @@
 dist/*.js
 config/*.js
+editor/*.js
+webpack/*.js

@@ -29,6 +29,8 @@ ul {
 }
 .show-enter, .show-leave {
   opacity: 0;
+  height: 0;
+  padding: 0;
 }
 html, body {
   @mixin font-main;
@@ -48,22 +50,21 @@ html, body {
 </style>
 
 <template>
-  <div id="wrapper">
-    <title></title>
-    <!-- <status></status> -->
-    <router-view></router-view>
-  </div>
+  <toolbar></toolbar>
+  <rule-list></rule-list>
 </template>
 
 <script>
 import store from 'store'
 
-import Title from './Title.vue'
+import Toolbar from './Toolbar.vue'
+import RuleList from './RuleList.vue'
 
 export default {
   store,
   components: {
-    Title
+    Toolbar,
+    RuleList
   }
 }
 </script>

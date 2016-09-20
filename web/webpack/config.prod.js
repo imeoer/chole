@@ -3,6 +3,7 @@ var webpack = require('webpack');
 var baseConfig = require('./config.base');
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var HtmlWebpackPlugin = require('html-webpack-plugin');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = Object.assign({}, baseConfig, {
   output: {
@@ -37,6 +38,12 @@ module.exports = Object.assign({}, baseConfig, {
         removeAttributeQuotes: true
       },
       chunksSortMode: 'dependency'
-    })
+    }),
+    new CopyWebpackPlugin([
+      {
+        from: 'node_modules/monaco-editor/min/vs',
+        to: 'vs',
+      }
+    ])
   ]
 });

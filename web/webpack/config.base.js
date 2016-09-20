@@ -1,5 +1,16 @@
+var path = require('path');
+
 module.exports = {
   entry: './main.js',
+  resolve: {
+    root: [
+      path.resolve('./components'),
+    ],
+    alias: {
+      components: path.resolve('./components'),
+      store: path.resolve('./store')
+    }
+  },
   module: {
     preLoaders: [
       {

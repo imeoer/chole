@@ -16,7 +16,7 @@
   },
   "rules": {
     // Possible errors
-    "comma-dangle": [2, "always-multiline"],
+    "comma-dangle": [2, "never"],
     "no-cond-assign": 2,
     "no-constant-condition": 2,
     "no-dupe-args": 2,
@@ -90,7 +90,7 @@
     "operator-assignment": [1, "always"],
     "operator-linebreak": [2, "before"],
     "padded-blocks": [1, "never"],
-    "quotes": [2, "single"],
+    "quotes": [2, "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
     "quote-props": [2, "as-needed", {"keywords": true}],
     "semi": [2, "never"],
     "semi-spacing": [2, {"before": false, "after": true}],

@@ -16,5 +16,6 @@ module.exports = Object.assign({}, baseConfig, {
       template: 'index.html',
       inject: true
     })
-  ]
+  ],
+  devtool: '#eval-source-map'
 });

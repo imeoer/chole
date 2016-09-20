@@ -10,7 +10,6 @@ button {
   padding: 0;
   .icon {
     @mixin shadow;
-    background-color: #a20000;
     color: white;
     border: 0;
     width: 35px;
@@ -19,6 +18,7 @@ button {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    background-color: #a20000;
     .fa {
       font-size: 18px;
     }
@@ -26,6 +26,16 @@ button {
   .text {
     margin-left: 10px;
     font-weight: bold;
+  }
+  &.green {
+    .icon {
+      background-color: green;
+    }
+  }
+  &.grey {
+    .icon {
+      background-color: grey;
+    }
   }
 }
 </style>
@@ -46,8 +56,8 @@ export default {
   props: {
     icon: {
       type: String,
-      required: true,
-    },
-  },
+      required: true
+    }
+  }
 }
 </script>
