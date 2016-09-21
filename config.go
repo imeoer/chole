@@ -79,7 +79,7 @@ func (config *Config) apply() {
 				},
 				onEvent: func(id string, event string, data string) {
 					Log("EVENT", id+","+event+","+data)
-					config.Pusher.Send([]byte(id + "," + event + "," + data))
+					config.Pusher.Send(id, event, data)
 				},
 			}
 			status := <-client.Start()

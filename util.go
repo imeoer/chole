@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -29,6 +30,53 @@ const (
 	CLR_B = "\x1b[34;1m"
 	CLR_Y = "\x1b[33;1m"
 )
+
+type Counter struct {
+	count int64
+}
+
+type Packet struct {
+	event string
+	data  string
+}
+
+type SafeMap struct {
+	lock sync.RWMutex
+	data map[string]interface{}
+}
+
+func (safeMap *SafeMap) Set(key string, value interface{}) {
+	safeMap.lock.Lock()
+	defer safeMap.lock.Unlock()
+	if value == nil {
+		delete(safeMap.data, key)
+		return
+	}
+	safeMap.data[key] = value
+}
+
+func (safeMap *SafeMap) Get(key string) interface{} {
+	safeMap.lock.RLock()
+	defer safeMap.lock.RUnlock()
+	return safeMap.data[key]
+}
+
+func (safeMap *SafeMap) Len() int {
+	safeMap.lock.RLock()
+	defer safeMap.lock.RUnlock()
+	return len(safeMap.data)
+}
+
+func (safeMap *SafeMap) Data() map[string]interface{} {
+	return safeMap.data
+}
+
+func NewSafeMap() *SafeMap {
+	safeMap := SafeMap{}
+	safeMap.data = make(map[string]interface{})
+	safeMap.lock = sync.RWMutex{}
+	return &safeMap
+}
 
 // Print log
 func Log(name string, info interface{}) {
@@ -48,15 +96,6 @@ func Error(name string, info interface{}) {
 func Fatal(name string, info interface{}) {
 	Error(name, info)
 	os.Exit(1)
-}
-
-type Counter struct {
-	count int64
-}
-
-type Packet struct {
-	event string
-	data  string
 }
 
 func SendPacket(conn net.Conn, event string, data string) error {

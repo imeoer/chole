@@ -11,7 +11,7 @@ type Client struct {
 	name    string
 	in      string
 	out     string
-	proxys  map[string]*Proxy
+	proxys  *SafeMap
 	manage  *ManageClient
 	onClose func(string)
 	onEvent func(string, string, string)
@@ -59,14 +59,15 @@ func (client *Client) newConnect(conn net.Conn) chan bool {
 }
 
 func (client *Client) addProxy(proxy *Proxy) {
-	client.proxys[proxy.id] = proxy
-	client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(len(client.proxys)))
+	client.proxys.Set(proxy.id, proxy)
+	client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(client.proxys.Len()))
 }
 
 func (client *Client) removeProxy(id string) {
-	if _, ok := client.proxys[id]; ok {
-		delete(client.proxys, id)
-		client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(len(client.proxys)))
+	proxy := client.proxys.Get(id)
+	if proxy != nil {
+		client.proxys.Set(id, nil)
+		client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(client.proxys.Len()))
 	}
 }
 
@@ -80,7 +81,8 @@ func (client *Client) onData(id string, data []byte) {
 
 func (client *Client) Close() {
 	TryClose(client.manage.conn)
-	for _, proxy := range client.proxys {
+	for _, pProxy := range client.proxys.Data() {
+		proxy := pProxy.(*Proxy)
 		proxy.Close()
 		client.removeProxy(proxy.id)
 	}
@@ -113,7 +115,7 @@ func (client *Client) Start() chan bool {
 			client.onClose(client.id)
 		},
 	}
-	client.proxys = make(map[string]*Proxy)
+	client.proxys = NewSafeMap()
 	client.manage = &manage
 	<-manage.Start()
 	return status

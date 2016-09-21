@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import createLogger from 'vuex/logger'
+import msgpack from 'msgpack-lite'
 import config from './modules/config'
 
 Vue.use(Vuex)
@@ -13,9 +14,11 @@ const connect = () => {
 
   // const conn = new WebSocket('ws://' + location.host + '/push')
   const conn = new WebSocket('ws://localhost:8081/push')
+  conn.binaryType = 'arraybuffer'
 
   conn.onmessage = function(event) {
-    console.log(event)
+    const data = msgpack.decode(new Uint8Array(event.data))
+    console.log(data)
   }
 
   conn.onclose = function() {
