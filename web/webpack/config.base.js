@@ -58,11 +58,5 @@ module.exports = {
   babel: {
     presets: ["es2015"],
     plugins: ["transform-runtime"]
-  },
-  vue: {
-    postcss: [require('autoprefixer'), require('precss')],
-    autoprefixer: {
-      browsers: ['last 2 versions']
-    }
   }
 }

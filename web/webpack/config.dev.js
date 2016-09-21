@@ -17,5 +17,11 @@ module.exports = Object.assign({}, baseConfig, {
       inject: true
     })
   ],
+  vue: {
+    postcss: [require('autoprefixer'), require('precss')],
+    autoprefixer: {
+      browsers: ['last 2 versions']
+    }
+  },
   devtool: '#eval-source-map'
 });

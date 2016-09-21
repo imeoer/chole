@@ -10,11 +10,6 @@ module.exports = Object.assign({}, baseConfig, {
     path: 'dist',
     filename: 'build.js'
   },
-  vue: {
-    loaders: {
-      css: ExtractTextPlugin.extract("css")
-    }
-  },
   plugins: [
     new ExtractTextPlugin("style.css"),
     new webpack.DefinePlugin({
@@ -45,5 +40,14 @@ module.exports = Object.assign({}, baseConfig, {
         to: 'vs',
       }
     ])
-  ]
+  ],
+  vue: {
+    loaders: {
+      css: ExtractTextPlugin.extract("css!postcss")
+    },
+    postcss: [require('autoprefixer'), require('precss')],
+    autoprefixer: {
+      browsers: ['last 2 versions']
+    }
+  },
 });

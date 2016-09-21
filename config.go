@@ -18,6 +18,7 @@ type Config struct {
 	Server  string           `yaml:"server"`
 	Rules   map[string]*Rule `yaml:"rules"`
 	Clients map[string]*Client
+	Pusher  *Push
 }
 
 func (rule Rule) getId(name string) string {
@@ -78,6 +79,7 @@ func (config *Config) apply() {
 				},
 				onEvent: func(id string, event string, data string) {
 					Log("EVENT", id+","+event+","+data)
+					config.Pusher.Send([]byte(id + "," + event + "," + data))
 				},
 			}
 			status := <-client.Start()
@@ -130,6 +132,8 @@ func (config *Config) Watch() {
 	}
 
 	push := Push{}
-	push.Start()
+	config.Pusher = &push
+	go push.Start()
+
 	<-done
 }

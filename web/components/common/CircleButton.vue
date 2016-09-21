@@ -1,4 +1,4 @@
-<style scoped>
+<style>
 button {
   @mixin hover;
   @mixin font-main;
