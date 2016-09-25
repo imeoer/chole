@@ -17,14 +17,24 @@ ul {
   padding: 0;
   margin: 0;
 }
+a {
+  color: #34495e;
+  text-decoration: none;
+  &:hover {
+    opacity: 0.9;
+  }
+}
+input, textarea {
+  outline: none;
+}
 .box {
   background-color: white;
-  border: 2px solid #eee;
-  border-radius: 5px;
-  padding: 15px 20px;
+  border: 1px solid #ccc;
+  padding: 20px 25px;
+  box-shadow: 0 2px 3px rgba(0,0,0,0.05);
 }
 .show-transition {
-  transition: all .3s ease;
+  transition: opacity .3s ease;
   opacity: 1;
 }
 .show-enter, .show-leave {
@@ -37,13 +47,14 @@ html, body {
   margin: 0;
   padding: 0;
   display: flex;
-  align-items: center;
   justify-content: center;
   font-size: 12px;
   color: #34495e;
+  background-color: #f1f1f1;
 }
 #wrapper {
-  width: 550px;
+  width: 800px;
+  margin-top: 50px;
 }
 </style>
 

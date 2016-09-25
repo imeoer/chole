@@ -20,7 +20,7 @@ type Server struct {
 func (server *Server) listen(isFrom bool, port string, block bool) net.Listener {
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		Fatal("SERVER", err)
+		return nil
 	}
 	handler := func() {
 		defer listener.Close()
@@ -122,16 +122,21 @@ func (server *Server) newManage(port string) {
 						return
 					}
 				}
+				listener := server.listen(true, reqPort, false)
 				connection := Connection{
 					manage:   conn,
 					from:     make(chan net.Conn),
 					to:       make(chan net.Conn),
-					listener: server.listen(true, reqPort, false),
+					listener: listener,
 				}
-				remoteAddr := conn.RemoteAddr().String() + ":" + reqPort
-				server.clients[remoteAddr] = connection
-				go server.waitProxy(connection)
-				SendPacket(conn, "REQUEST_PORT_ACCEPT", remoteAddr)
+				if listener != nil {
+					remoteAddr := conn.RemoteAddr().String() + ":" + reqPort
+					server.clients[remoteAddr] = connection
+					go server.waitProxy(connection)
+					SendPacket(conn, "REQUEST_PORT_ACCEPT", remoteAddr)
+				} else {
+					SendPacket(conn, "REQUEST_PORT_REJECT", reqPort)
+				}
 			}
 		},
 		onClose: func(conn net.Conn) {

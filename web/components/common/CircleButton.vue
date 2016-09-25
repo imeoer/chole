@@ -18,9 +18,9 @@ button {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background-color: #a20000;
+    background-color: #d81919;
     .fa {
-      font-size: 18px;
+      font-size: 17px;
     }
   }
   .text {
@@ -35,6 +35,11 @@ button {
   &.grey {
     .icon {
       background-color: grey;
+    }
+  }
+  &.orange {
+    .icon {
+      background-color: #f97f17;
     }
   }
 }

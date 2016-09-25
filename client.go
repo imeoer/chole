@@ -1,9 +1,6 @@
 package main
 
-import (
-	"net"
-	"strconv"
-)
+import "net"
 
 type Client struct {
 	id      string
@@ -11,10 +8,11 @@ type Client struct {
 	name    string
 	in      string
 	out     string
+	flow    uint64
 	proxys  *SafeMap
 	manage  *ManageClient
 	onClose func(string)
-	onEvent func(string, string, string)
+	onEvent func(string, string, interface{})
 }
 
 func (client *Client) connect(addr string) net.Conn {
@@ -58,16 +56,24 @@ func (client *Client) newConnect(conn net.Conn) chan bool {
 	return proxy.Start(false)
 }
 
+func (client *Client) getConns() int {
+	return client.proxys.Len()
+}
+
+func (client *Client) getFlow() uint64 {
+	return client.flow
+}
+
 func (client *Client) addProxy(proxy *Proxy) {
 	client.proxys.Set(proxy.id, proxy)
-	client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(client.proxys.Len()))
+	client.onEvent(client.id, "CONNECTIONS", client.getConns())
 }
 
 func (client *Client) removeProxy(id string) {
 	proxy := client.proxys.Get(id)
 	if proxy != nil {
 		client.proxys.Set(id, nil)
-		client.onEvent(client.id, "CONNECTIONS", strconv.Itoa(client.proxys.Len()))
+		client.onEvent(client.id, "CONNECTIONS", client.getConns())
 	}
 }
 
@@ -76,7 +82,8 @@ func (client *Client) onProxyClose(id string) {
 }
 
 func (client *Client) onData(id string, data []byte) {
-	client.onEvent(client.id, "DATA", strconv.Itoa(len(data)))
+	client.flow = client.flow + uint64(len(data))
+	client.onEvent(client.id, "DATA", client.flow)
 }
 
 func (client *Client) Close() {

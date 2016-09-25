@@ -1,16 +1,15 @@
-<style>
+<style scoped>
   .editor {
     overflow: auto;
     .editor-wrap {
       @mixin shadow;
       padding: 10px;
       background-color: #1e1e1e;
-      border-radius: 7px;
       margin-bottom: 20px;
     }
     #editor {
       width: 486px;
-      height: 250px;
+      height: 350px;
       .monaco-editor .view-line {
         border-bottom: 1px dashed #313131;
       }
@@ -26,13 +25,13 @@
 </style>
 
 <template>
-  <div class="editor box" transition="show">
+  <div class="editor box">
     <div class="editor-wrap">
       <div id="editor"></div>
     </div>
     <div class="buttons">
       <circle-button class="cancel grey" icon="close" v-link="'/'">取消</circle-button>
-      <circle-button class="apply green" icon="check">应用</circle-button>
+      <circle-button class="apply" icon="check">应用</circle-button>
     </div>
   </div>
 </template>

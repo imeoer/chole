@@ -6,10 +6,10 @@ header {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 24px;
+    font-size: 28px;
     font-weight: bold;
     .fa {
-      font-size: 32px;
+      font-size: 38px;
       color: #a20000;
     }
     .title {
@@ -18,7 +18,7 @@ header {
   }
   .version {
     font-size: 12px;
-    color: #ccc;
+    color: #aaa;
     margin-top: 5px;
   }
 }
@@ -28,7 +28,7 @@ header {
   <header>
     <div class="head">
       <i class="fa fa-heartbeat"></i>
-      <span class="title">内网映射控制台</span>
+      <span class="title">内网映射控制</span>
     </div>
     <div class="version">RELEASE 2016-09-18</div>
   </header>

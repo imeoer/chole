@@ -21,6 +21,8 @@ type Config struct {
 	Pusher  *Push
 }
 
+type Map map[string]interface{}
+
 func (rule Rule) getId(name string) string {
 	return fmt.Sprintf("%s:%s:%s", name, rule.In, rule.Out)
 }
@@ -30,6 +32,7 @@ func (config *Config) parse() {
 	if err != nil {
 		Fatal("CONFIG", err)
 	}
+	config.Rules = nil
 	if err = yaml.Unmarshal(content, &config); err != nil {
 		Fatal("CONFIG", err)
 	}
@@ -77,8 +80,7 @@ func (config *Config) apply() {
 				onClose: func(id string) {
 					config.RemoveClient(id)
 				},
-				onEvent: func(id string, event string, data string) {
-					Log("EVENT", id+","+event+","+data)
+				onEvent: func(id string, event string, data interface{}) {
 					config.Pusher.Send(id, event, data)
 				},
 			}
@@ -88,6 +90,39 @@ func (config *Config) apply() {
 			}
 		}
 	}
+
+	if config.Pusher != nil {
+		config.Pusher.Send("", "INIT", config.GetStatus())
+	}
+}
+
+func (config *Config) GetStatus() []Map {
+	status := make([]Map, 0)
+	for name, rule := range config.Rules {
+		id := rule.getId(name)
+		if client, ok := config.Clients[id]; ok {
+			status = append(status, Map{
+				"id":          id,
+				"status":      true,
+				"name":        name,
+				"in":          rule.In,
+				"out":         rule.Out,
+				"connections": client.getConns(),
+				"flow":        client.getFlow(),
+			})
+		} else {
+			status = append(status, Map{
+				"id":          id,
+				"status":      false,
+				"name":        name,
+				"in":          rule.In,
+				"out":         rule.Out,
+				"connections": 0,
+				"flow":        0,
+			})
+		}
+	}
+	return status
 }
 
 func (config *Config) AddClient(client *Client) {
@@ -133,7 +168,7 @@ func (config *Config) Watch() {
 
 	push := Push{}
 	config.Pusher = &push
-	go push.Start()
+	go push.Start(config)
 
 	<-done
 }

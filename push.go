@@ -16,11 +16,12 @@ type Push struct {
 	conn *websocket.Conn
 }
 
-func (push *Push) Start() {
+func (push *Push) Start(config *Config) {
 	web := ink.New()
 	web.Get("/push", func(ctx *ink.Context) {
 		websocket.Handler(func(ws *websocket.Conn) {
 			push.conn = ws
+			push.Send("", "INIT", config.GetStatus())
 			Log("PUSH", "new connection")
 			for {
 				buff := make([]byte, 0xffff)

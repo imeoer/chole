@@ -1,12 +1,13 @@
 import * as types from '../types'
 
 const state = {
-  editor: false
+  status: false,
+  config: ''
 }
 
 const mutations = {
-  [types.TOGGLE_EDITOR](preState, flag) {
-    state.editor = !state.editor
+  [types.TOGGLE_STATUS](preState, flag) {
+    state.status = flag
   }
 }
 

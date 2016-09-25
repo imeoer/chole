@@ -1,7 +1,7 @@
 <style scoped>
 .toolbar {
   overflow: auto;
-  margin-bottom: 20px;
+  margin-bottom: 60px;
   .start {
     float: left;
   }
@@ -13,8 +13,8 @@
 
 <template>
   <div class="toolbar box" v-show="!show">
-    <circle-button class="start" icon="play-circle">启动</circle-button>
-    <circle-button class="edit green" icon="circle-o" v-link="'/edit'">编辑规则</circle-button>
+    <circle-button class="start {{status ? 'green' : 'orange'}}" icon="rocket">{{status ? '运行中' : '未启动'}}</circle-button>
+    <circle-button class="edit" icon="circle-o" v-link="'/edit'">编辑规则</circle-button>
   </div>
 </template>
 
@@ -27,6 +27,7 @@ export default {
   },
   vuex: {
     getters: {
+      status: (state) => state.app.status
     }
   }
 }
