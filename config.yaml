@@ -1,4 +1,5 @@
+server: 52.68.141.31
 rules:
   web1:
-    out: 8001
-    in: 8000
+    out: 8005
+    in: 8080

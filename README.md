@@ -1,6 +1,10 @@
 # chole
 A elegant tunnels of exposing private network to the internet.
 
+## How it works
+
+![](howto.png)
+
 ## Install
 
 `go get -u github.com/imeoer/chole`

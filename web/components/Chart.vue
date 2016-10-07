@@ -1,74 +1,72 @@
 <style scoped>
   canvas {
     width: 100%;
-    height: 150px;
-    position: absolute;
-    bottom: -50px;
+    height: 100%;
+    bottom: 0;
     z-index: 0;
   }
-  #line1 {
-    opacity: 0.2;
-  }
-  #line2 {
-    opacity: 0.3;
+  #line {
   }
 </style>
 
 <template>
   <div class="chart-wrap">
-    <canvas id="line1"></canvas>
-    <canvas id="line2"></canvas>
+    <canvas id="line"></canvas>
   </div>
 </template>
 
 <script>
-const draw = (id, speed, density, color) => {
-  const TAU = Math.PI * 2
-  const res = 0.005 // percentage of screen per x segment
-  const outerScale = 0.1 / density
-  let inc = 0
+import Chart from 'chart.js'
 
-  const c = document.getElementById(id)
-  const ctx = c.getContext('2d')
-
-  const grad = ctx.createLinearGradient(0, 0, 0, c.height * 4)
-  grad.addColorStop(0, 'rgba(223, 191, 32, 1)')
-  grad.addColorStop(1, 'rgba(0, 0, 0, 0)')
-
-  const drawWave = () => {
-    const w = c.offsetWidth
-    const h = 100
-    const cx = w * 0.5
-    const cy = h * 0.5
-    ctx.clearRect(0, 0, w, h)
-    const segmentWidth = w * res
-    ctx.fillStyle = color
-    ctx.beginPath()
-    ctx.moveTo(0, cy)
-    for (let i = 0, endi = 1 / res; i <= endi; i++) {
-      const _y = cy + Math.sin((i + inc) * TAU * res * density) * cy * Math.sin(i * TAU * res * density * outerScale)
-      const _x = i * segmentWidth
-      ctx.lineTo(_x, _y)
-    }
-    ctx.lineTo(w, h)
-    ctx.lineTo(0, h)
-    ctx.closePath()
-    ctx.fill()
+const createChart = () => {
+  const ctx = document.getElementById('line')
+  const startingData = {
+    labels: [1, 2, 3, 4, 5, 6, 7],
+    datasets: [
+      {
+        fillColor: 'rgba(220,220,220,0.2)',
+        strokeColor: 'rgba(220,220,220,1)',
+        pointColor: 'rgba(220,220,220,1)',
+        pointStrokeColor: '#fff',
+        data: [65, 59, 80, 81, 56, 55, 40]
+      },
+      {
+        fillColor: 'rgba(220,220,220,0.2)',
+        strokeColor: 'rgba(220,220,220,1)',
+        pointColor: 'rgba(220,220,220,1)',
+        pointStrokeColor: '#fff',
+        data: [28, 48, 40, 19, 86, 27, 90]
+      }
+    ]
   }
+  let latestLabel = startingData.labels[0]
+  const chart = new Chart(ctx)
+  setInterval(function() {
+    chart.data.labels.splice(0, 1)
+    chart.data.datsets.forEach(function(dataset) {
+      dataset.data.splice(0, 1)
+    })
 
-  const loop = () => {
-    inc -= speed
-    drawWave()
-    requestAnimationFrame(loop)
-  }
+    chart.update()
 
-  loop()
+    chart.data.labels.push('new label')
+    chart.data.datsets.forEach(function(dataset, index) {
+      dataset.data.push([Math.random() * 100, Math.random() * 100], ++latestLabel)
+    })
+
+    chart.update()
+  }, 100)
 }
 
 export default {
+  props: {
+    speed: {
+      type: Number,
+      required: true
+    }
+  },
   ready() {
-    draw('line1', 0.2, 5, '#0be242')
-    draw('line2', 0.4, 8, '#0be242')
+    createChart()
   }
 }
 </script>

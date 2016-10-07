@@ -75,7 +75,7 @@
     <div class="wrap">
       <div class="line line1">
         <span class="name-wrap">
-          <div class='name''>{{data.name}}</div>
+          <div class="name">{{data.name}}</div>
           <a class="out" v-show="!expand" href="http://localhost:{{data.out}}/" target="_blank">localhost:{{data.out}}</a>
         </span>
         <i :class="['status', 'fa', data.status ? 'fa-check' : 'fa-close', { 'grey': !data.status }]"></i>
@@ -88,13 +88,13 @@
       <div class="line line3" v-show="expand">
         <span class="status"><span class="bold">状态：</span>{{data.status ? '已连接' : '未连接'}}</span>
         <span class="params">
-          <span class="speed"><span class="bold">速度：</span>213 kB/s</span>
+          <span class="speed"><span class="bold">速度：</span>{{speed | size}}/s</span>
           <span class="flow"><span class="bold">流量：</span>{{data.flow | size}}</span>
           <span class="eonnections"><span class="bold">连接数：</span>{{data.connections}}</span>
         </span>
       </div>
     </div>
-    <chart v-show="expand"></chart>
+    <chart v-show="expand" :speed="speed"></chart>
   </li>
 </template>
 
@@ -110,6 +110,9 @@ Vue.filter('size', (value) => {
     value /= 1000
     i++
   }
+  if (value === 0) {
+    return '0'
+  }
   return sprintfjs.sprintf('%.4g %s', value, attrs[i])
 })
 
@@ -119,7 +122,8 @@ export default {
   },
   data: () => {
     return {
-      expand: false
+      expand: false,
+      speed: 0
     }
   },
   props: {
@@ -129,6 +133,15 @@ export default {
     toggle() {
       this.expand = !this.expand
     }
+  },
+  ready: function() {
+    let lastFlow = this.data.flow
+    setInterval(() => {
+      const flow = this.data.flow
+      this.speed = flow - lastFlow
+      console.log(this.speed)
+      lastFlow = flow
+    }, 1000)
   }
 }
 </script>

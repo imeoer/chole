@@ -15,7 +15,7 @@ const connect = (store) => {
   const host = `${location.origin.replace(/^http/, 'ws')}/push`
 
   // const conn = new WebSocket('ws://' + location.host + '/push')
-  const conn = new WebSocket('ws://192.168.1.9:8081/push')
+  const conn = new WebSocket('ws://localhost:8081/push')
   conn.binaryType = 'arraybuffer'
 
   conn.onopen = () => {
